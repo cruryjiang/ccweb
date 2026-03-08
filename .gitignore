@@ -1,0 +1,26 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# macOS
+.DS_Store
+
+# Build artifacts
+build/
+dist/
+
+# Logs
+*.log
+
+# Temp files
+temp_images/
+
+# IDE
+.idea/
+.vscode/
+
+# Claude
+.claude/

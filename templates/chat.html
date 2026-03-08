@@ -1,0 +1,4259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Web Chat - 本地版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-tertiary: #0f3460;
+            --text-primary: #eaeaea;
+            --text-secondary: #a0a0a0;
+            --accent: #e94560;
+            --accent-hover: #ff6b6b;
+            --user-msg-bg: #e94560;
+            --assistant-msg-bg: #2d2d44;
+            --border: #2a2a3e;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 头部 */
+        .header {
+            background: var(--bg-secondary);
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header h1::before {
+            content: "◆";
+            color: var(--accent);
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .btn-secondary {
+            background: transparent;
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--border);
+        }
+
+        /* 主内容区 */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .messages {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .message {
+            display: flex;
+            gap: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .message.user .avatar {
+            background: var(--user-msg-bg);
+        }
+
+        .message.assistant .avatar {
+            background: var(--accent);
+        }
+
+        .message-content {
+            padding: 14px 18px;
+            border-radius: 18px;
+            line-height: 1.6;
+            font-size: 15px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: var(--user-msg-bg);
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-content {
+            background: var(--assistant-msg-bg);
+            border-bottom-left-radius: 4px;
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 0;
+        }
+
+        .loading-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: loadingPulse 1.4s ease-in-out infinite both;
+        }
+
+        .loading-dots span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .loading-dots span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        .loading-dots span:nth-child(3) {
+            animation-delay: 0s;
+        }
+
+        @keyframes loadingPulse {
+            0%, 80%, 100% {
+                transform: scale(0.6);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .loading-text {
+            color: var(--text-secondary);
+            font-size: 14px;
+            animation: loadingText 2s ease-in-out infinite;
+        }
+
+        @keyframes loadingText {
+            0%, 100% {
+                opacity: 0.6;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* 消息包装器（包含图片和内容） */
+        .message-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            max-width: calc(100% - 60px);
+        }
+
+        .message.user .message-wrapper {
+            align-items: flex-end;
+        }
+
+        .message.assistant .message-wrapper {
+            align-items: flex-start;
+        }
+
+        /* 输入区 */
+        .input-container {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 20px 24px;
+        }
+
+        .input-wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .input-box {
+            display: flex;
+            gap: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            align-items: flex-end;
+        }
+
+        .input-box:focus-within {
+            border-color: var(--accent);
+        }
+
+        /* 命令快捷按钮栏 */
+        .command-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .cmd-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .cmd-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .cmd-btn-secondary {
+            background: transparent;
+            font-size: 11px;
+            padding: 4px 8px;
+        }
+
+        /* 图片预览区 */
+        .image-preview-container {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+            min-height: 0;
+        }
+
+        .image-preview-item {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .image-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .image-preview-delete {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .image-preview-delete:hover {
+            opacity: 1;
+            background: var(--accent);
+        }
+
+        /* 消息图片区（独立于气泡外，在消息上方单独一行） */
+        .message-images-container {
+            display: flex;
+            justify-content: flex-end;
+            max-width: 100%;
+        }
+
+        .message-images {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .message-image {
+            width: 120px;
+            height: 120px;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: zoom-in;
+            flex-shrink: 0;
+            border: 2px solid var(--border);
+            background: var(--bg-tertiary);
+        }
+
+        .message-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.2s;
+        }
+
+        .message-image:hover img {
+            transform: scale(1.05);
+        }
+
+        /* 图片行的特殊样式 */
+        .message.has-images-only {
+            margin-bottom: 0;
+        }
+
+        .message.has-images-only .avatar {
+            visibility: hidden;
+            height: 0;
+        }
+
+        /* 添加图片按钮 */
+        .add-image-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .add-image-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .reset-context-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .reset-context-btn:hover {
+            background: var(--bg-tertiary);
+            color: #e94560;
+        }
+
+        .reset-context-btn.active {
+            color: #e94560;
+        }
+
+        .reset-context-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: #e94560;
+        }
+
+        #imageFileInput {
+            display: none;
+        }
+
+        .image-preview-loading {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-preview-loading::after {
+            content: "";
+            width: 24px;
+            height: 24px;
+            border: 2px solid transparent;
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 图片放大预览模态框 */
+        .image-lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 10001;
+            justify-content: center;
+            align-items: center;
+            cursor: zoom-out;
+        }
+
+        .image-lightbox.active {
+            display: flex;
+        }
+
+        .image-lightbox img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .image-lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .image-lightbox-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Toast 提示 */
+        .toast {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            z-index: 1000;
+            animation: fadeInOut 3s forwards;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .toast.error {
+            border-color: var(--accent);
+            background: rgba(233, 69, 96, 0.2);
+        }
+
+        .toast.success {
+            border-color: #4caf50;
+            background: rgba(76, 175, 80, 0.2);
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+            10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+        }
+
+        textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 15px;
+            line-height: 1.5;
+            resize: none;
+            max-height: 150px;
+            min-height: 24px;
+            font-family: inherit;
+        }
+
+        textarea:focus {
+            outline: none;
+        }
+
+        .send-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: var(--accent);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 暂停控制栏 */
+        /* 历史对话侧边栏 - 默认隐藏，点击弹出 */
+        .history-panel {
+            position: fixed;
+            left: -280px;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            transition: left 0.3s ease;
+        }
+
+        .history-panel.active {
+            left: 0;
+        }
+
+        .history-header {
+            background: var(--bg-tertiary);
+            padding: 16px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* 历史按钮标签 */
+        .history-toggle {
+            position: fixed;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-left: none;
+            border-radius: 0 8px 8px 0;
+            padding: 12px 8px;
+            cursor: pointer;
+            z-index: 1000;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-size: 13px;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+
+        .history-toggle:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            padding-left: 10px;
+        }
+
+        .history-toggle.active {
+            left: 280px;
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .history-item {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover, .history-item.active {
+            border-color: var(--accent);
+        }
+
+        .history-item .title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-item .meta {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .history-item {
+            position: relative;
+        }
+
+        .history-item .delete-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 4px;
+            opacity: 0;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .history-item:hover .delete-btn {
+            opacity: 1;
+        }
+
+        .history-item .delete-btn:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        /* 日志面板 */
+        .log-panel {
+            position: fixed;
+            right: -500px;
+            top: 0;
+            width: 500px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border);
+            z-index: 1002;
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .log-panel.active {
+            right: 0;
+        }
+
+        .log-header {
+            background: var(--bg-tertiary);
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .log-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .log-header .status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-secondary);
+        }
+
+        .log-header .status.connected {
+            background: #4ade80;
+        }
+
+        .log-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            font-family: 'Fira Code', Monaco, Consolas, monospace;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            padding: 6px 10px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            border-left: 3px solid transparent;
+        }
+
+        .log-entry.command {
+            border-left-color: #a78bfa;
+            color: #c4b5fd;
+        }
+
+        .log-entry.process_output {
+            color: #d1d5db;
+        }
+
+        .log-entry.error {
+            border-left-color: var(--accent);
+            color: #fca5a5;
+        }
+
+        .log-entry .timestamp {
+            color: #6b7280;
+            margin-right: 8px;
+            font-size: 11px;
+        }
+
+        .log-entry .log-icon {
+            margin-right: 6px;
+        }
+
+        .log-entry.log-type-prompt {
+            border-left-color: #10b981;
+            color: #6ee7b7;
+        }
+
+        .log-entry.log-type-response {
+            border-left-color: #8b5cf6;
+            color: #c4b5fd;
+        }
+
+        .log-entry.log-type-process {
+            border-left-color: #3b82f6;
+            color: #93c5fd;
+        }
+
+        .log-entry.log-type-warning {
+            border-left-color: #f59e0b;
+            color: #fcd34d;
+        }
+
+        .log-entry.log-type-info {
+            border-left-color: #06b6d4;
+            color: #67e8f9;
+        }
+
+        .log-expand-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 2px 6px;
+            font-size: 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+
+        .log-expand-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .log-metadata {
+            margin-top: 8px;
+            padding: 10px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            font-family: 'Fira Code', Monaco, Consolas, monospace;
+            font-size: 11px;
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log-metadata pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        /* 过程信息样式 */
+        .process-info {
+            display: block;
+            background: rgba(100, 149, 237, 0.1);
+            border-left: 3px solid #6495ed;
+            padding: 10px 14px;
+            margin: 10px 0;
+            font-family: 'Fira Code', Monaco, Consolas, monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            border-radius: 6px;
+            animation: processFadeIn 0.3s ease-out;
+        }
+
+        @keyframes processFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .thinking-block {
+            background: rgba(167, 139, 250, 0.1);
+            border-left: 3px solid #a78bfa;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .tool-call {
+            background: rgba(74, 222, 128, 0.1);
+            border-left: 3px solid #4ade80;
+            padding: 10px 14px;
+            margin: 10px 0;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            animation: processFadeIn 0.3s ease-out;
+        }
+
+        .tool-call strong {
+            color: #4ade80;
+        }
+
+        /* 设置面板 */
+        .settings-panel {
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            width: 380px;
+            max-height: calc(100vh - 100px);
+            z-index: 1000;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            display: none;
+            flex-direction: column;
+        }
+
+        .settings-panel.active {
+            display: flex;
+        }
+
+        .settings-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .settings-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .settings-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+        }
+
+        .settings-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .settings-section {
+            margin-bottom: 20px;
+        }
+
+        .settings-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .model-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .model-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: #3c3c3c;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .model-item:hover {
+            background: #4a4a4a;
+        }
+
+        .model-item.selected {
+            border-color: #4a9eff;
+            background: #3d4a5c;
+        }
+
+        .model-item input[type="radio"] {
+            display: none;
+        }
+
+        .model-radio {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid #666;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .model-item.selected .model-radio {
+            border-color: #4a9eff;
+        }
+
+        .model-item.selected .model-radio::after {
+            content: '';
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4a9eff;
+        }
+
+        .model-info {
+            flex: 1;
+        }
+
+        .model-name {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .model-desc {
+            font-size: 11px;
+            color: #999;
+        }
+
+        .model-tier {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #555;
+            margin-left: 8px;
+        }
+
+        .model-tier.premium {
+            background: #6b4f00;
+            color: #ffc107;
+        }
+
+        .model-tier.standard {
+            background: #1e4a2e;
+            color: #4ade80;
+        }
+
+        .model-tier.economy {
+            background: #1e3a5f;
+            color: #60a5fa;
+        }
+
+        .model-management {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .model-management-list {
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .model-management-footer {
+            border-top: 1px solid var(--border);
+            padding: 12px;
+            background: var(--bg-tertiary);
+        }
+
+        .model-manage-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            background: #3c3c3c;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .model-manage-item .model-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .model-manage-item .model-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 500;
+        }
+
+        .model-manage-item .model-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 2px;
+        }
+
+        .model-manage-item .default-badge {
+            font-size: 10px;
+            padding: 1px 4px;
+            border-radius: 3px;
+            background: #4a9eff;
+            color: white;
+            margin-left: 6px;
+        }
+
+        .model-manage-actions {
+            display: flex;
+            gap: 4px;
+            margin-left: 8px;
+        }
+
+        .model-manage-actions button {
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .model-manage-actions button:hover {
+            background: #555;
+            color: #fff;
+        }
+
+        .model-manage-actions button.delete:hover {
+            color: #ef4444;
+        }
+
+        .model-form {
+            margin-top: 12px;
+            padding: 12px;
+            background: #3c3c3c;
+            border-radius: 8px;
+        }
+
+        .model-form .form-group {
+            margin-bottom: 10px;
+        }
+
+        .model-form label {
+            display: block;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 4px;
+        }
+
+        .model-form input[type="text"],
+        .model-form select {
+            width: 100%;
+            padding: 8px 10px;
+            background: #2a2a2a;
+            border: 1px solid #555;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 13px;
+        }
+
+        .model-form input[type="checkbox"] {
+            margin-right: 6px;
+        }
+
+        .model-form .form-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .model-form .form-actions button {
+            flex: 1;
+        }
+
+        .preset-btn.secondary {
+            background: #555;
+        }
+
+        .preset-btn.secondary:hover {
+            background: #666;
+        }
+
+        .tool-presets {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .preset-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .preset-btn:hover {
+            border-color: var(--accent);
+        }
+
+        .tools-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .tool-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        /* 工作目录显示 */
+        .cwd-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            max-width: 200px;
+        }
+
+        .cwd-display:hover {
+            border-color: var(--accent);
+        }
+
+        /* 目录选择面板 */
+        .cwd-panel {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            width: 500px;
+            max-height: 70vh;
+            z-index: 1001;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            display: none;
+            flex-direction: column;
+        }
+
+        .cwd-panel.active {
+            display: flex;
+        }
+
+        .cwd-panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cwd-panel-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .cwd-path-input {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .cwd-path-input input {
+            flex: 1;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-family: 'Fira Code', Monaco, monospace;
+        }
+
+        .cwd-path-input input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .cwd-path-input button {
+            background: var(--accent);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .cwd-browser {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+            min-height: 200px;
+            max-height: 400px;
+        }
+
+        .cwd-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .cwd-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .cwd-item.selected {
+            background: var(--accent);
+            color: white;
+        }
+
+        .cwd-item-icon {
+            font-size: 16px;
+        }
+
+        .cwd-item-name {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .cwd-item-actions {
+            opacity: 0;
+            display: flex;
+            gap: 4px;
+        }
+
+        .cwd-item:hover .cwd-item-actions {
+            opacity: 1;
+        }
+
+        .cwd-item-btn {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .cwd-item-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .cwd-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 16px;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+            flex-wrap: wrap;
+        }
+
+        .cwd-breadcrumb-item {
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .cwd-breadcrumb-item:hover {
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+        }
+
+        .cwd-breadcrumb-separator {
+            color: var(--text-secondary);
+        }
+
+        .cwd-empty {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .cwd-loading {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        /* 头部按钮 */
+        .header-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .header-btn:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        /* Agent 选择器 */
+        .agent-select {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* 权限模式选择器 */
+        .permission-select {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .permission-select:hover {
+            border-color: var(--accent);
+        }
+
+        /* 模型选择器 */
+        .model-select {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            min-width: 140px;
+        }
+
+        .model-select:hover {
+            border-color: var(--accent);
+        }
+
+        /* 遮罩层 */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        /* 主内容区域 */
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 大输入窗口模态框 */
+        .input-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .input-modal.active {
+            display: flex;
+        }
+
+        .input-modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            width: 80%;
+            max-width: 900px;
+            height: 70vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .input-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            border-radius: 12px 12px 0 0;
+        }
+
+        .input-modal-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .input-modal-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .input-modal-textarea {
+            flex: 1;
+            width: 100%;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            color: var(--text-primary);
+            font-size: 15px;
+            line-height: 1.6;
+            resize: none;
+            font-family: inherit;
+        }
+
+        .input-modal-textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .input-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding-top: 16px;
+        }
+
+        .input-modal-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .input-modal-btn-cancel {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .input-modal-btn-cancel:hover {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .input-modal-btn-send {
+            background: var(--accent);
+            border: none;
+            color: white;
+        }
+
+        .input-modal-btn-send:hover {
+            background: var(--accent-hover);
+        }
+
+        /* 输入框放大按钮 */
+        .expand-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .expand-btn:hover {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        /* 输入框内的暂停按钮 */
+        .pause-btn-inline {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            background: #f59e0b;
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            font-size: 14px;
+        }
+
+        .pause-btn-inline:hover {
+            background: #d97706;
+        }
+
+        .pause-btn-inline.resumed {
+            background: #10b981;
+        }
+
+        .pause-btn-inline.resumed:hover {
+            background: #059669;
+        }
+
+        /* 权限请求弹窗 */
+        .permission-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 3000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .permission-modal.active {
+            display: flex;
+        }
+
+        .permission-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .permission-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-tertiary);
+            border-radius: 12px 12px 0 0;
+        }
+
+        .permission-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .permission-type-badge {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: #f59e0b;
+            color: white;
+        }
+
+        .permission-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .permission-tool {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .permission-tool-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .permission-tool-args {
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .permission-diff {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .permission-diff-header {
+            padding: 10px 16px;
+            background: var(--bg-tertiary);
+            font-size: 13px;
+            font-weight: 500;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .permission-diff-content {
+            padding: 12px 16px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 250px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .permission-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .permission-btn {
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .permission-btn-deny {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .permission-btn-deny:hover {
+            background: #fee2e2;
+            color: #dc2626;
+            border-color: #dc2626;
+        }
+
+        .permission-btn-approve {
+            background: #10b981;
+            border: none;
+            color: white;
+        }
+
+        .permission-btn-approve:hover {
+            background: #059669;
+        }
+
+        /* ===================== PPT 制作功能样式 ===================== */
+        .ppt-panel {
+            position: fixed;
+            right: -420px;
+            top: 0;
+            width: 420px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border);
+            z-index: 1000;
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ppt-panel.active {
+            right: 0;
+        }
+
+        .ppt-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-tertiary);
+        }
+
+        .ppt-header h2 {
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ppt-header h2::before {
+            content: '📊';
+        }
+
+        .ppt-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .ppt-close:hover {
+            color: var(--text-primary);
+        }
+
+        .ppt-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .ppt-upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 16px;
+        }
+
+        .ppt-upload-area:hover {
+            border-color: var(--accent);
+            background: rgba(233, 69, 96, 0.05);
+        }
+
+        .ppt-upload-area.dragover {
+            border-color: var(--accent);
+            background: rgba(233, 69, 96, 0.1);
+        }
+
+        .ppt-upload-area.has-file {
+            border-style: solid;
+            border-color: #4ade80;
+            background: rgba(74, 222, 128, 0.1);
+        }
+
+        .ppt-upload-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .ppt-upload-text {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .ppt-upload-filename {
+            color: #4ade80;
+            font-weight: 500;
+            margin-top: 8px;
+        }
+
+        .ppt-section {
+            margin-bottom: 20px;
+        }
+
+        .ppt-section-title {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .ppt-input {
+            width: 100%;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 12px;
+            color: var(--text-primary);
+            font-size: 14px;
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        .ppt-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .ppt-btn {
+            width: 100%;
+            background: var(--accent);
+            border: none;
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+
+        .ppt-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .ppt-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .ppt-btn-secondary {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+        }
+
+        .ppt-btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .ppt-btn-danger {
+            background: #ef4444;
+        }
+
+        .ppt-btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .ppt-btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .ppt-btn-group .ppt-btn {
+            flex: 1;
+            margin-top: 0;
+        }
+
+        .ppt-outline {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .ppt-outline-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .ppt-outline-subtitle {
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-bottom: 12px;
+        }
+
+        .ppt-outline-slides {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .ppt-outline-slide {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ppt-outline-slide:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .ppt-outline-slide.active {
+            background: rgba(233, 69, 96, 0.2);
+            border-left: 3px solid var(--accent);
+        }
+
+        .ppt-outline-slide-number {
+            color: var(--text-secondary);
+            font-size: 11px;
+            min-width: 28px;
+        }
+
+        .ppt-editor {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .ppt-editor-field {
+            margin-bottom: 12px;
+        }
+
+        .ppt-editor-field label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .ppt-editor-field input,
+        .ppt-editor-field textarea {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px 10px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .ppt-editor-field input:focus,
+        .ppt-editor-field textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .ppt-editor-field textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .ppt-nav {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .ppt-nav button {
+            flex: 1;
+        }
+
+        .ppt-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-tertiary);
+        }
+
+        .ppt-progress {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .ppt-status {
+            padding: 10px 12px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 12px;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+        }
+
+        .ppt-status.generating {
+            background: rgba(233, 69, 96, 0.1);
+            color: var(--accent);
+        }
+
+        .ppt-status.success {
+            background: rgba(74, 222, 128, 0.1);
+            color: #4ade80;
+        }
+
+        .ppt-hidden {
+            display: none !important;
+        }
+
+        .ppt-download-link {
+            color: #4ade80;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px;
+            background: rgba(74, 222, 128, 0.1);
+            border-radius: 6px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+
+        .ppt-download-link:hover {
+            background: rgba(74, 222, 128, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <!-- 遮罩层 -->
+    <div class="overlay" id="overlay" onclick="closeAllPanels()"></div>
+
+    <!-- 历史对话切换按钮 -->
+    <div class="history-toggle" id="historyToggle" onclick="toggleHistoryPanel()">📜 历史对话</div>
+
+    <!-- 历史对话侧边栏 -->
+    <div class="history-panel" id="historyPanel">
+        <div class="history-header">
+            <h3>📜 对话历史</h3>
+            <button class="header-btn" onclick="toggleHistoryPanel()">✕</button>
+        </div>
+        <div class="history-actions" style="padding: 8px 12px; border-bottom: 1px solid var(--border);">
+            <button class="btn" onclick="clearChat()" style="width: 100%;">➕ 新对话</button>
+        </div>
+        <div class="history-list" id="historyList">
+            <div class="history-empty">暂无历史对话</div>
+        </div>
+    </div>
+
+    <!-- 日志面板 -->
+    <div class="log-panel" id="logPanel">
+        <div class="log-header">
+            <h3><span class="status" id="logStatus"></span> 交互日志</h3>
+            <button class="header-btn" onclick="toggleLogPanel()">✕</button>
+        </div>
+        <div class="log-content" id="logContent">
+            <div style="color: var(--text-secondary); text-align: center; padding: 40px;">等待连接...</div>
+        </div>
+    </div>
+
+    <!-- 设置面板 -->
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-header">
+            <h2>⚙️ 设置</h2>
+            <button class="header-btn" onclick="toggleSettings()">✕</button>
+        </div>
+        <div class="settings-content">
+            <div class="settings-section">
+                <h3>🤖 模型管理</h3>
+                <div class="model-management">
+                    <div class="model-management-list" id="modelManageList"></div>
+                    <div class="model-management-footer">
+                        <button class="preset-btn" onclick="showAddModelForm()" style="width: 100%;">+ 添加模型</button>
+                    </div>
+                </div>
+                <!-- 添加/编辑模型表单 -->
+                <div class="model-form" id="modelForm" style="display: none;">
+                    <input type="hidden" id="editModelId">
+                    <div class="form-group">
+                        <label>模型 ID</label>
+                        <input type="text" id="modelIdInput" placeholder="如: claude-opus-4-6">
+                    </div>
+                    <div class="form-group">
+                        <label>显示名称</label>
+                        <input type="text" id="modelNameInput" placeholder="如: Claude Opus 4.6">
+                    </div>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <input type="text" id="modelApiNameInput" placeholder="API 调用时使用的模型名称（留空则使用 ID）">
+                    </div>
+                    <div class="form-group">
+                        <label>API URL</label>
+                        <input type="text" id="modelUrlInput" placeholder="自定义 API 端点地址（可选）">
+                    </div>
+                    <div class="form-group">
+                        <label>描述</label>
+                        <input type="text" id="modelDescInput" placeholder="如: 最强推理能力">
+                    </div>
+                    <div class="form-group">
+                        <label>等级</label>
+                        <select id="modelTierInput">
+                            <option value="opus">Opus (高级)</option>
+                            <option value="sonnet">Sonnet (标准)</option>
+                            <option value="haiku">Haiku (轻量)</option>
+                            <option value="custom">自定义</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" id="modelDefaultInput"> 设为默认模型</label>
+                    </div>
+                    <div class="form-actions">
+                        <button class="preset-btn" onclick="saveModelConfig()">保存</button>
+                        <button class="preset-btn secondary" onclick="cancelModelForm()">取消</button>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h3>🛠️ 工具权限</h3>
+                <div class="tool-presets">
+                    <button class="preset-btn" onclick="selectAllTools(true)">全部允许</button>
+                    <button class="preset-btn" onclick="selectReadonlyTools()">只读模式</button>
+                    <button class="preset-btn" onclick="selectNoTools()">禁止所有</button>
+                </div>
+                <div class="tools-list" id="toolsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 目录选择面板 -->
+    <div class="cwd-panel" id="cwdPanel">
+        <div class="cwd-panel-header">
+            <h3>📁 选择工作目录</h3>
+            <button class="header-btn" onclick="closeCwdPanel()">✕</button>
+        </div>
+        <div class="cwd-path-input">
+            <input type="text" id="cwdInput" placeholder="输入目录路径..." onkeydown="if(event.key==='Enter')applyCwdFromInput()">
+            <button onclick="applyCwdFromInput()">确认</button>
+        </div>
+        <div class="cwd-breadcrumb" id="cwdBreadcrumb"></div>
+        <div class="cwd-browser" id="cwdBrowser">
+            <div class="cwd-loading">加载中...</div>
+        </div>
+    </div>
+
+    <header class="header">
+        <h1>Claude Web Chat</h1>
+        <div class="header-controls">
+            <div class="cwd-display" id="cwdDisplay" onclick="openCwdPanel()" title="点击切换工作目录">
+                <span>📁</span>
+                <span id="cwdPath">加载中...</span>
+            </div>
+            <select class="model-select" id="modelSelect" onchange="changeModel()" title="选择模型">
+                <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+            </select>
+            <select class="agent-select" id="agentSelect">
+                <option value="default">默认助手</option>
+                <option value="code-reviewer">代码审查</option>
+                <option value="test-writer">测试编写</option>
+                <option value="architect">架构设计</option>
+            </select>
+            <select class="permission-select" id="permissionModeSelect" title="权限模式">
+                <option value="auto">自动执行</option>
+                <option value="acceptEdits">自动编辑</option>
+                <option value="safe">安全模式</option>
+            </select>
+            <button class="header-btn" onclick="toggleLogPanel()" title="查看日志">📋</button>
+            <button class="header-btn" onclick="toggleSettings()" title="工具设置">⚙️</button>
+        </div>
+    </header>
+
+    <main class="chat-container" id="chatContainer">
+        <div class="messages" id="messages">
+            <div class="message assistant">
+                <div class="avatar">C</div>
+                <div class="message-content">你好！我是 Claude，支持以下快捷命令：
+
+• `/brainstorm 想法` - 头脑风暴模式，先探索设计再实现
+• `/plan 任务` - 文件规划模式，创建任务规划文档
+
+直接输入你的问题或需求即可开始对话。</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 暂停控制栏 -->
+    <footer class="input-container">
+        <div class="input-wrapper">
+            <!-- 命令快捷按钮 -->
+            <div class="command-bar">
+                <button class="cmd-btn" onclick="insertCommand('/plan ')" title="Planning-with-files 模式：创建规划文件并分步执行任务">
+                    📋 /plan
+                </button>
+                <button class="cmd-btn" onclick="insertCommand('/brainstorm ')" title="头脑风暴模式：通过问答探索想法并设计方案">
+                    💡 /brainstorm
+                </button>
+                <button class="cmd-btn cmd-btn-secondary" onclick="insertCommand('/bs ')" title="头脑风暴简写">
+                    /bs
+                </button>
+            </div>
+            <!-- 图片预览区 -->
+            <div class="image-preview-container" id="imagePreviewContainer"></div>
+            <div class="input-box">
+                <input type="file" id="imageFileInput" accept="image/*" multiple onchange="handleImageFileSelect(event)">
+                <button class="add-image-btn" onclick="document.getElementById('imageFileInput').click()" title="添加图片">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                </button>
+                <button class="reset-context-btn" id="resetContextBtn" onclick="resetContext()" title="重置上下文（新消息将不携带历史对话）">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="1 4 1 10 7 10"></polyline>
+                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                    </svg>
+                </button>
+                <textarea
+                    id="userInput"
+                    placeholder="输入消息..."
+                    rows="1"
+                ></textarea>
+                <button class="pause-btn-inline" id="pauseBtn" onclick="togglePause()" style="display: none;" title="暂停生成">⏸️</button>
+                <button class="expand-btn" onclick="openInputModal()" title="放大编辑">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <polyline points="9 21 3 21 3 15"></polyline>
+                        <line x1="21" y1="3" x2="14" y2="10"></line>
+                        <line x1="3" y1="21" x2="10" y2="14"></line>
+                    </svg>
+                </button>
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 图片放大预览模态框 -->
+    <div class="image-lightbox" id="imageLightbox" onclick="closeLightbox(event)">
+        <button class="image-lightbox-close" onclick="closeLightbox(event)">×</button>
+        <img id="lightboxImage" src="" alt="放大预览">
+    </div>
+
+    <!-- 大输入窗口模态框 -->
+    <div class="input-modal" id="inputModal">
+        <div class="input-modal-content">
+            <div class="input-modal-header">
+                <h3>📝 编辑消息</h3>
+                <button class="header-btn" onclick="closeInputModal()">✕</button>
+            </div>
+            <div class="input-modal-body">
+                <textarea class="input-modal-textarea" id="modalTextarea" placeholder="输入消息内容..." onkeydown="handleModalKeyDown(event)"></textarea>
+                <div class="input-modal-footer">
+                    <button class="input-modal-btn input-modal-btn-cancel" onclick="closeInputModal()">取消</button>
+                    <button class="input-modal-btn input-modal-btn-send" onclick="sendFromModal()">发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 权限请求弹窗 -->
+    <div class="permission-modal" id="permissionModal">
+        <div class="permission-content">
+            <div class="permission-header">
+                <h3>🔐 权限请求 <span class="permission-type-badge" id="permissionType"></span></h3>
+            </div>
+            <div class="permission-body" id="permissionBody">
+                <!-- 动态填充 -->
+            </div>
+            <div class="permission-footer">
+                <button class="permission-btn permission-btn-deny" onclick="respondPermission(false)">❌ 拒绝</button>
+                <button class="permission-btn permission-btn-approve" onclick="respondPermission(true)">✅ 允许</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 会话管理
+        const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        let currentChatId = sessionId;
+        let isGenerating = false;
+        let sessions = {};
+        let chatHistory = [];
+
+        // 工具权限
+        let availableTools = [];
+        let selectedTools = [];
+
+        // Agent 和工作目录
+        let currentAgent = 'default';
+        let currentCwd = null;
+
+        // 日志
+        let logWs = null;
+
+        // 暂停功能
+        let isPaused = false;
+        let pauseResolve = null;
+
+        // 图片状态管理
+        let pendingImages = [];  // {id, base64, filename}
+
+        // 添加图片到待发送列表
+        function addImage(base64, filename) {
+            const id = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            pendingImages.push({ id, base64, filename });
+            renderImagePreviews();
+            showToast('已添加图片', 'success');
+        }
+
+        // 从待发送列表移除图片
+        function removeImage(id) {
+            pendingImages = pendingImages.filter(img => img.id !== id);
+            renderImagePreviews();
+        }
+
+        // 渲染图片预览
+        function renderImagePreviews() {
+            const container = document.getElementById('imagePreviewContainer');
+            container.innerHTML = pendingImages.map(img => `
+                <div class="image-preview-item" data-id="${img.id}" onclick="openLightbox('${img.base64}')">
+                    <img src="${img.base64}" alt="预览图片">
+                    <button class="image-preview-delete" onclick="event.stopPropagation(); removeImage('${img.id}')" title="删除图片">×</button>
+                </div>
+            `).join('');
+        }
+
+        // 打开图片放大预览
+        function openLightbox(base64) {
+            const lightbox = document.getElementById('imageLightbox');
+            const img = document.getElementById('lightboxImage');
+            img.src = base64;
+            lightbox.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // 关闭图片放大预览
+        function closeLightbox(event) {
+            if (event.target.classList.contains('image-lightbox') || event.target.classList.contains('image-lightbox-close')) {
+                const lightbox = document.getElementById('imageLightbox');
+                lightbox.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        }
+
+        // ESC 键关闭预览
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const lightbox = document.getElementById('imageLightbox');
+                if (lightbox.classList.contains('active')) {
+                    lightbox.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            }
+        });
+
+        // 清空待发送图片
+        function clearPendingImages() {
+            pendingImages = [];
+            renderImagePreviews();
+        }
+
+        // 显示 Toast 提示
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // 粘贴事件处理
+        function handlePaste(event) {
+            const items = event.clipboardData?.items;
+            if (!items) return;
+
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    event.preventDefault();
+                    const file = item.getAsFile();
+                    if (!file) continue;
+
+                    // 校验文件大小 (5MB)
+                    const maxSize = 5 * 1024 * 1024;
+                    if (file.size > maxSize) {
+                        showToast('图片太大，请压缩后重试 (最大 5MB)', 'error');
+                        continue;
+                    }
+
+                    // 转换为 base64
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        addImage(e.target.result, file.name || 'pasted-image.png');
+                    };
+                    reader.onerror = function() {
+                        showToast('图片读取失败', 'error');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
+
+        // 文件选择处理
+        function handleImageFileSelect(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            for (const file of files) {
+                if (!file.type.startsWith('image/')) {
+                    showToast('只支持图片文件', 'error');
+                    continue;
+                }
+
+                // 校验文件大小 (5MB)
+                const maxSize = 5 * 1024 * 1024;
+                if (file.size > maxSize) {
+                    showToast(`图片 "${file.name}" 太大，请压缩后重试 (最大 5MB)`, 'error');
+                    continue;
+                }
+
+                // 转换为 base64
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    addImage(e.target.result, file.name);
+                };
+                reader.onerror = function() {
+                    showToast(`图片 "${file.name}" 读取失败`, 'error');
+                };
+                reader.readAsDataURL(file);
+            }
+
+            // 清空 input 以便可以重复选择同一个文件
+            event.target.value = '';
+        }
+
+        // 上传单张图片
+        async function uploadSingleImage(imageData) {
+            const response = await fetch('/api/upload-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    session_id: currentChatId,
+                    image_data: imageData.base64,
+                    filename: imageData.filename
+                })
+            });
+            const result = await response.json();
+            if (result.status === 'error') {
+                throw new Error(result.message);
+            }
+            return result.path;
+        }
+
+        // 上传所有待发送图片
+        async function uploadPendingImages() {
+            if (pendingImages.length === 0) return [];
+
+            const uploadPromises = pendingImages.map(img => uploadSingleImage(img));
+            const paths = await Promise.all(uploadPromises);
+            return paths;
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTools();
+            loadCwd();
+            loadModels();
+            initChatHistory();
+            connectLogWebSocket();
+            renderToolsList();
+            // 绑定粘贴事件
+            document.addEventListener('paste', handlePaste);
+        });
+
+        // 加载工具列表
+        async function loadTools() {
+            try {
+                const response = await fetch('/api/tools');
+                const data = await response.json();
+                availableTools = data.tools || [];
+                renderToolsList();
+            } catch (e) {
+                console.error('加载工具列表失败:', e);
+            }
+        }
+
+        // 渲染工具列表
+        function renderToolsList() {
+            const container = document.getElementById('toolsList');
+            if (!container) return;
+            container.innerHTML = availableTools.map(tool => `
+                <div class="tool-item">
+                    <input type="checkbox" id="tool-${tool.id}" checked onchange="toggleTool('${tool.id}')">
+                    <label for="tool-${tool.id}">${tool.name}</label>
+                </div>
+            `).join('');
+        }
+
+        function toggleTool(toolId) {
+            const cb = document.getElementById(`tool-${toolId}`);
+            if (cb.checked) {
+                const index = selectedTools.indexOf(toolId);
+                if (index > -1) selectedTools.splice(index, 1);
+            } else {
+                if (!selectedTools.includes(toolId)) selectedTools.push(toolId);
+            }
+        }
+
+        function selectAllTools(allow) {
+            availableTools.forEach(tool => {
+                const cb = document.getElementById(`tool-${tool.id}`);
+                if (cb) cb.checked = allow;
+            });
+            selectedTools = allow ? [] : availableTools.map(t => t.id);
+        }
+
+        function selectReadonlyTools() {
+            const readonlyTools = ['Read', 'Glob', 'Grep', 'LS'];
+            availableTools.forEach(tool => {
+                const cb = document.getElementById(`tool-${tool.id}`);
+                if (cb) cb.checked = readonlyTools.includes(tool.id);
+            });
+            selectedTools = availableTools.filter(t => !readonlyTools.includes(t.id)).map(t => t.id);
+        }
+
+        function selectNoTools() {
+            selectAllTools(false);
+        }
+
+        function getEffectiveTools() {
+            return selectedTools.length === 0 || selectedTools.length === availableTools.length
+                ? null
+                : selectedTools;
+        }
+
+        // 加载工作目录
+        async function loadCwd() {
+            try {
+                const response = await fetch(`/api/cwd?session_id=${currentChatId}`);
+                const data = await response.json();
+                currentCwd = data.cwd;
+                document.getElementById('cwdPath').textContent = currentCwd.split('/').slice(-2).join('/') || currentCwd;
+            } catch (e) {
+                console.error('加载工作目录失败:', e);
+            }
+        }
+
+        // 当前选择的模型
+        let currentModel = null;
+        // 模型列表数据
+        let modelsData = null;
+
+        // 加载可用模型列表
+        async function loadModels() {
+            try {
+                const response = await fetch('/api/models');
+                const data = await response.json();
+                modelsData = data;
+                const modelSelect = document.getElementById('modelSelect');
+
+                // 清空现有选项
+                modelSelect.innerHTML = '';
+
+                // 添加模型选项
+                data.models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.id;
+                    option.textContent = model.name;
+                    option.title = model.description;
+                    modelSelect.appendChild(option);
+                });
+
+                // 更新设置面板中的模型管理列表
+                renderModelManageList();
+
+                // 加载会话的模型配置
+                await loadSessionModel();
+            } catch (e) {
+                console.error('加载模型列表失败:', e);
+            }
+        }
+
+        // 渲染模型管理列表
+        function renderModelManageList() {
+            const container = document.getElementById('modelManageList');
+            if (!modelsData || !container) return;
+
+            container.innerHTML = '';
+
+            modelsData.models.forEach(model => {
+                const isDefault = model.id === modelsData.default_model;
+                const item = document.createElement('div');
+                item.className = 'model-manage-item';
+                item.dataset.modelId = model.id;
+
+                const apiUrl = model.url || '';
+                const apiName = model.api_name || model.id;
+                const infoLines = [
+                    model.id,
+                    model.description || '',
+                    apiUrl ? `URL: ${apiUrl}` : ''
+                ].filter(Boolean).join(' · ');
+
+                item.innerHTML = `
+                    <div class="model-info">
+                        <div class="model-name">${model.name}${isDefault ? '<span class="default-badge">默认</span>' : ''}</div>
+                        <div class="model-desc">${infoLines}</div>
+                    </div>
+                    <div class="model-manage-actions">
+                        <button onclick="editModel('${model.id}')" title="编辑">✏️</button>
+                        <button class="delete" onclick="deleteModel('${model.id}')" title="删除">🗑️</button>
+                    </div>
+                `;
+
+                container.appendChild(item);
+            });
+        }
+
+        // 显示添加模型表单
+        function showAddModelForm() {
+            document.getElementById('editModelId').value = '';
+            document.getElementById('modelIdInput').value = '';
+            document.getElementById('modelIdInput').disabled = false;
+            document.getElementById('modelNameInput').value = '';
+            document.getElementById('modelApiNameInput').value = '';
+            document.getElementById('modelUrlInput').value = '';
+            document.getElementById('modelDescInput').value = '';
+            document.getElementById('modelTierInput').value = 'custom';
+            document.getElementById('modelDefaultInput').checked = false;
+            document.getElementById('modelForm').style.display = 'block';
+        }
+
+        // 编辑模型
+        function editModel(modelId) {
+            const model = modelsData.models.find(m => m.id === modelId);
+            if (!model) return;
+
+            document.getElementById('editModelId').value = modelId;
+            document.getElementById('modelIdInput').value = modelId;
+            document.getElementById('modelIdInput').disabled = true;
+            document.getElementById('modelNameInput').value = model.name || '';
+            document.getElementById('modelApiNameInput').value = model.api_name || '';
+            document.getElementById('modelUrlInput').value = model.url || '';
+            document.getElementById('modelDescInput').value = model.description || '';
+            document.getElementById('modelTierInput').value = model.tier || 'custom';
+            document.getElementById('modelDefaultInput').checked = modelId === modelsData.default_model;
+            document.getElementById('modelForm').style.display = 'block';
+        }
+
+        // 删除模型
+        async function deleteModel(modelId) {
+            if (!confirm(`确定要删除模型 "${modelId}" 吗？`)) return;
+
+            // 从列表中移除
+            const newModels = modelsData.models.filter(m => m.id !== modelId);
+            let newDefault = modelsData.default_model;
+
+            // 如果删除的是默认模型，重新设置默认
+            if (modelId === newDefault && newModels.length > 0) {
+                newDefault = newModels[0].id;
+            }
+
+            try {
+                const response = await fetch('/api/models', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        models: newModels,
+                        default_model: newDefault
+                    })
+                });
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    showToast('模型已删除', 'success');
+                    // 重新加载模型列表
+                    await loadModels();
+                } else {
+                    showToast('删除失败: ' + data.message, 'error');
+                }
+            } catch (e) {
+                console.error('删除模型失败:', e);
+                showToast('删除失败', 'error');
+            }
+        }
+
+        // 保存模型配置
+        async function saveModelConfig() {
+            const editId = document.getElementById('editModelId').value;
+            const modelId = document.getElementById('modelIdInput').value.trim();
+            const modelName = document.getElementById('modelNameInput').value.trim();
+            const modelApiName = document.getElementById('modelApiNameInput').value.trim();
+            const modelUrl = document.getElementById('modelUrlInput').value.trim();
+            const modelDesc = document.getElementById('modelDescInput').value.trim();
+            const modelTier = document.getElementById('modelTierInput').value;
+            const isDefault = document.getElementById('modelDefaultInput').checked;
+
+            if (!modelId || !modelName) {
+                showToast('模型 ID 和名称不能为空', 'error');
+                return;
+            }
+
+            const newModel = {
+                id: modelId,
+                name: modelName,
+                api_name: modelApiName || modelId,
+                url: modelUrl,
+                description: modelDesc,
+                tier: modelTier
+            };
+
+            let newModels;
+            if (editId) {
+                // 编辑模式：更新现有模型
+                newModels = modelsData.models.map(m => m.id === editId ? newModel : m);
+            } else {
+                // 添加模式：检查 ID 是否重复
+                if (modelsData.models.some(m => m.id === modelId)) {
+                    showToast('模型 ID 已存在', 'error');
+                    return;
+                }
+                newModels = [...modelsData.models, newModel];
+            }
+
+            const newDefault = isDefault ? modelId : modelsData.default_model;
+
+            try {
+                const response = await fetch('/api/models', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        models: newModels,
+                        default_model: newDefault
+                    })
+                });
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    showToast('模型配置已保存', 'success');
+                    cancelModelForm();
+                    // 重新加载模型列表
+                    await loadModels();
+                } else {
+                    showToast('保存失败: ' + data.message, 'error');
+                }
+            } catch (e) {
+                console.error('保存模型配置失败:', e);
+                showToast('保存失败', 'error');
+            }
+        }
+
+        // 取消模型表单
+        function cancelModelForm() {
+            document.getElementById('modelForm').style.display = 'none';
+        }
+
+        // 加载会话的模型配置
+        async function loadSessionModel() {
+            try {
+                const response = await fetch(`/api/session/${currentChatId}/model`);
+                const data = await response.json();
+                if (data.status === 'ok' && data.model) {
+                    currentModel = data.model;
+                    document.getElementById('modelSelect').value = data.model;
+                }
+            } catch (e) {
+                console.error('加载会话模型配置失败:', e);
+            }
+        }
+
+        // 切换模型
+        async function changeModel() {
+            const modelSelect = document.getElementById('modelSelect');
+            const newModel = modelSelect.value;
+
+            try {
+                const response = await fetch(`/api/session/${currentChatId}/model`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: newModel })
+                });
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    currentModel = newModel;
+                    showToast(`模型已切换到: ${modelSelect.options[modelSelect.selectedIndex].text}`, 'success');
+                } else {
+                    showToast('切换模型失败: ' + data.message, 'error');
+                    // 恢复原来的选择
+                    if (currentModel) {
+                        modelSelect.value = currentModel;
+                    }
+                }
+            } catch (e) {
+                console.error('切换模型失败:', e);
+                showToast('切换模型失败', 'error');
+            }
+        }
+
+        // 目录浏览面板相关
+        let cwdBrowsePath = '';
+
+        async function openCwdPanel() {
+            const panel = document.getElementById('cwdPanel');
+            const overlay = document.getElementById('overlay');
+            panel.classList.add('active');
+            overlay.classList.add('active');
+
+            // 确保先加载当前工作目录
+            if (!currentCwd) {
+                await loadCwd();
+            }
+
+            document.getElementById('cwdInput').value = currentCwd || '';
+            cwdBrowsePath = currentCwd || '/';
+            loadCwdBrowser(cwdBrowsePath);
+        }
+
+        function closeCwdPanel() {
+            document.getElementById('cwdPanel').classList.remove('active');
+            document.getElementById('overlay').classList.remove('active');
+        }
+
+        async function loadCwdBrowser(path) {
+            const browser = document.getElementById('cwdBrowser');
+            browser.innerHTML = '<div class="cwd-loading">加载中...</div>';
+
+            cwdBrowsePath = path;
+
+            try {
+                console.log('Loading directory:', path);
+                const response = await fetch('/api/list-files', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: currentChatId, path: path, depth: 1 })
+                });
+                const data = await response.json();
+                console.log('Directory data:', data);
+
+                if (data.status === 'error') {
+                    browser.innerHTML = `<div class="cwd-empty">${data.message}</div>`;
+                    return;
+                }
+
+                renderCwdBreadcrumb(data.path);
+                renderCwdItems(data.path, data.files);
+            } catch (e) {
+                console.error('Failed to load directory:', e);
+                browser.innerHTML = `<div class="cwd-empty">加载失败: ${e.message}</div>`;
+            }
+        }
+
+        function renderCwdBreadcrumb(path) {
+            const breadcrumb = document.getElementById('cwdBreadcrumb');
+            const parts = path.split('/').filter(p => p);
+            let html = '<span class="cwd-breadcrumb-item" onclick="loadCwdBrowser(\'/\')">🏠 根目录</span>';
+
+            let currentPath = '';
+            parts.forEach((part, index) => {
+                currentPath += '/' + part;
+                html += `<span class="cwd-breadcrumb-separator">/</span>`;
+                html += `<span class="cwd-breadcrumb-item" onclick="loadCwdBrowser('${currentPath}')">${part}</span>`;
+            });
+
+            breadcrumb.innerHTML = html;
+        }
+
+        function renderCwdItems(path, files) {
+            const browser = document.getElementById('cwdBrowser');
+
+            if (!files || files.length === 0) {
+                browser.innerHTML = '<div class="cwd-empty">空目录</div>';
+                return;
+            }
+
+            // 只显示目录
+            const dirs = files.filter(f => f.is_dir);
+            const parentPath = path.split('/').slice(0, -1).join('/') || '/';
+
+            let html = '';
+
+            // 添加返回上级目录选项
+            if (path !== '/') {
+                html += `
+                    <div class="cwd-item" onclick="loadCwdBrowser('${parentPath}')">
+                        <span class="cwd-item-icon">⬆️</span>
+                        <span class="cwd-item-name">.. (上级目录)</span>
+                    </div>
+                `;
+            }
+
+            dirs.forEach(dir => {
+                const isSelected = dir.path === currentCwd;
+                html += `
+                    <div class="cwd-item ${isSelected ? 'selected' : ''}" onclick="loadCwdBrowser('${dir.path}')">
+                        <span class="cwd-item-icon">📁</span>
+                        <span class="cwd-item-name">${dir.name}</span>
+                        <div class="cwd-item-actions">
+                            <button class="cwd-item-btn" onclick="event.stopPropagation(); selectCwd('${dir.path}')">选择此目录</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            browser.innerHTML = html || '<div class="cwd-empty">没有子目录</div>';
+        }
+
+        async function selectCwd(path) {
+            try {
+                const response = await fetch('/api/cwd', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: currentChatId, cwd: path })
+                });
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    currentCwd = data.cwd;
+                    document.getElementById('cwdPath').textContent = currentCwd.split('/').slice(-2).join('/') || currentCwd;
+                    closeCwdPanel();
+                } else {
+                    alert('切换目录失败: ' + data.message);
+                }
+            } catch (e) {
+                alert('切换目录失败: ' + e.message);
+            }
+        }
+
+        async function applyCwdFromInput() {
+            const input = document.getElementById('cwdInput');
+            const path = input.value.trim();
+            if (!path) return;
+            await selectCwd(path);
+        }
+
+        // 初始化历史对话
+        function initChatHistory() {
+            const saved = localStorage.getItem('claude_chat_history');
+            if (saved) chatHistory = JSON.parse(saved);
+
+            const savedSessions = localStorage.getItem('claude_sessions');
+            if (savedSessions) {
+                const parsed = JSON.parse(savedSessions);
+                Object.assign(sessions, parsed);
+            }
+
+            // 确保当前会话被初始化
+            if (!sessions[currentChatId]) {
+                sessions[currentChatId] = [];
+            }
+
+            saveCurrentChatToHistory();
+            renderHistoryList();
+        }
+
+        function saveCurrentChatToHistory() {
+            const history = sessions[currentChatId] || [];
+            const firstUserMsg = history.find(m => m.role === 'user');
+            const title = firstUserMsg
+                ? (firstUserMsg.content.length > 30 ? firstUserMsg.content.substring(0, 30) + '...' : firstUserMsg.content)
+                : '新对话';
+
+            // 保存完整的 HTML 内容
+            const messagesDiv = document.getElementById('messages');
+            const htmlContent = messagesDiv ? messagesDiv.innerHTML : '';
+
+            const existingIndex = chatHistory.findIndex(h => h.id === currentChatId);
+            const item = {
+                id: currentChatId,
+                title,
+                timestamp: Date.now(),
+                messageCount: history.length,
+                html: htmlContent  // 保存完整 HTML
+            };
+
+            if (existingIndex >= 0) {
+                chatHistory[existingIndex] = item;
+            } else {
+                chatHistory.unshift(item);
+                if (chatHistory.length > 50) chatHistory.pop();
+            }
+
+            localStorage.setItem('claude_chat_history', JSON.stringify(chatHistory));
+            localStorage.setItem('claude_sessions', JSON.stringify(sessions));
+            renderHistoryList();
+        }
+
+        function renderHistoryList() {
+            const list = document.getElementById('historyList');
+            if (!list) return;
+
+            if (chatHistory.length === 0) {
+                list.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);">暂无历史对话</div>';
+                return;
+            }
+
+            list.innerHTML = chatHistory.map(item => {
+                const date = new Date(item.timestamp).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                return `
+                    <div class="history-item ${item.id === currentChatId ? 'active' : ''}" onclick="loadChat('${item.id}')">
+                        <button class="delete-btn" onclick="event.stopPropagation(); deleteChat('${item.id}')" title="删除对话">×</button>
+                        <div class="title">${item.title}</div>
+                        <div class="meta">${date} · ${item.messageCount || 0} 条消息</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function deleteChat(chatId) {
+            // 确认删除
+            if (!confirm('确定要删除这个对话吗？此操作不可恢复。')) {
+                return;
+            }
+
+            try {
+                // 调用后端API删除服务器端数据
+                await fetch(`/api/session/${chatId}`, {
+                    method: 'DELETE'
+                });
+
+                // 从 chatHistory 中移除
+                const historyIndex = chatHistory.findIndex(h => h.id === chatId);
+                if (historyIndex >= 0) {
+                    chatHistory.splice(historyIndex, 1);
+                }
+
+                // 从 sessions 中移除
+                if (sessions[chatId]) {
+                    delete sessions[chatId];
+                }
+
+                // 更新 localStorage
+                localStorage.setItem('claude_chat_history', JSON.stringify(chatHistory));
+                localStorage.setItem('claude_sessions', JSON.stringify(sessions));
+
+                // 如果删除的是当前对话，切换到新会话
+                if (chatId === currentChatId) {
+                    // 创建新会话
+                    const newChatId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    currentChatId = newChatId;
+                    sessions[currentChatId] = [];
+
+                    // 重置UI
+                    const messagesDiv = document.getElementById('messages');
+                    messagesDiv.innerHTML = `
+                        <div class="message assistant">
+                            <div class="avatar">C</div>
+                            <div class="message-content">你好！我是 Claude，支持以下快捷命令：
+
+• /brainstorm 想法 - 头脑风暴模式，先探索设计再实现
+• /plan 任务 - 文件规划模式，创建任务规划文档
+
+直接输入你的问题或需求即可开始对话。</div>
+                        </div>
+                    `;
+
+                    // 重置工作目录
+                    loadCwd();
+
+                    // 重连 WebSocket
+                    if (logWs) {
+                        logWs.close();
+                    }
+                    connectLogWebSocket();
+                }
+
+                // 更新历史列表
+                renderHistoryList();
+
+                showToast('对话已删除', 'success');
+            } catch (e) {
+                console.error('删除对话失败:', e);
+                showToast('删除失败: ' + e.message, 'error');
+            }
+        }
+
+        function saveMessageToHistory(role, content) {
+            if (!sessions[currentChatId]) {
+                sessions[currentChatId] = [];
+            }
+            sessions[currentChatId].push({ role, content });
+            // 限制历史长度
+            if (sessions[currentChatId].length > 100) {
+                sessions[currentChatId] = sessions[currentChatId].slice(-100);
+            }
+            // 保存到 localStorage
+            localStorage.setItem('claude_sessions', JSON.stringify(sessions));
+        }
+
+        async function loadChat(chatId) {
+            if (chatId === currentChatId) {
+                return;
+            }
+
+            // 保存当前对话
+            saveCurrentChatToHistory();
+
+            // 重置生成状态
+            isGenerating = false;
+            isPaused = false;
+            if (pauseResolve) {
+                pauseResolve();
+                pauseResolve = null;
+            }
+
+            // 重置按钮状态
+            document.getElementById('sendBtn').disabled = false;
+            hidePauseBar();
+
+            // 清空待发送的图片
+            if (typeof pendingImages !== 'undefined') {
+                pendingImages = [];
+                if (typeof updateImagePreview === 'function') {
+                    updateImagePreview();
+                }
+            }
+
+            // 切换到新会话
+            currentChatId = chatId;
+
+            // 查找历史记录
+            const historyItem = chatHistory.find(h => h.id === chatId);
+            const messagesDiv = document.getElementById('messages');
+
+            if (historyItem && historyItem.html) {
+                // 恢复保存的 HTML 内容
+                messagesDiv.innerHTML = historyItem.html;
+            } else {
+                // 兼容旧数据：从 sessions 恢复
+                const history = sessions[chatId] || [];
+                messagesDiv.innerHTML = '';
+
+                if (history.length === 0) {
+                    // 新会话显示欢迎消息
+                    messagesDiv.innerHTML = `
+                        <div class="message assistant">
+                            <div class="avatar">C</div>
+                            <div class="message-content">你好！我是 Claude，支持以下快捷命令：
+
+• /brainstorm 想法 - 头脑风暴模式，先探索设计再实现
+• /plan 任务 - 文件规划模式，创建任务规划文档
+
+直接输入你的问题或需求即可开始对话。</div>
+                        </div>
+                    `;
+                } else {
+                    for (const msg of history) {
+                        addMessage(msg.role, msg.content);
+                    }
+                }
+            }
+
+            // 更新工作目录
+            loadCwd();
+
+            // 同步历史消息到后端
+            const sessionHistory = sessions[chatId] || [];
+            if (sessionHistory.length > 0) {
+                try {
+                    await fetch(`/api/session/${chatId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ history: sessionHistory })
+                    });
+                    console.log(`已同步 ${sessionHistory.length} 条历史消息到后端`);
+                } catch (e) {
+                    console.error('同步历史消息失败:', e);
+                }
+            }
+
+            // 重连 WebSocket 到新会话
+            if (logWs) {
+                logWs.close();
+            }
+            connectLogWebSocket();
+
+            renderHistoryList();
+        }
+
+        // WebSocket 日志
+        function connectLogWebSocket() {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws/logs/${currentChatId}`;
+
+            try {
+                logWs = new WebSocket(wsUrl);
+
+                logWs.onopen = function() {
+                    document.getElementById('logStatus').className = 'status connected';
+                    document.getElementById('logContent').innerHTML = '';
+                };
+
+                logWs.onmessage = function(event) {
+                    const log = JSON.parse(event.data);
+                    if (log.type === 'pong' || log.type === 'heartbeat') return;
+
+                    const content = document.getElementById('logContent');
+                    const entry = document.createElement('div');
+                    entry.className = `log-entry log-type-${log.type}`;
+                    const time = new Date(log.timestamp * 1000).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                    // 根据日志类型显示不同的图标
+                    let icon = '';
+                    switch (log.type) {
+                        case 'command': icon = '⚡'; break;
+                        case 'prompt': icon = '📤'; break;
+                        case 'response': icon = '📥'; break;
+                        case 'process': icon = '🔄'; break;
+                        case 'process_output': icon = '📝'; break;
+                        case 'error': icon = '❌'; break;
+                        case 'warning': icon = '⚠️'; break;
+                        case 'info': icon = 'ℹ️'; break;
+                        case 'system': icon = '⚙️'; break;
+                        default: icon = '•';
+                    }
+
+                    let html = `<span class="timestamp">${time}</span><span class="log-icon">${icon}</span>${escapeHtml(log.message)}`;
+
+                    // 如果有metadata，添加展开按钮
+                    if (log.metadata && Object.keys(log.metadata).length > 0) {
+                        const metaId = 'meta_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                        html += ` <button class="log-expand-btn" onclick="toggleLogMeta('${metaId}')">展开</button>`;
+                        html += `<div id="${metaId}" class="log-metadata" style="display: none;">`;
+                        // prompt 和 response 类型优先显示 content 字段
+                        if ((log.type === 'prompt' || log.type === 'response') && log.metadata.content) {
+                            html += `<pre style="white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow-y: auto;">${escapeHtml(log.metadata.content)}</pre>`;
+                        } else {
+                            html += `<pre>${escapeHtml(JSON.stringify(log.metadata, null, 2))}</pre>`;
+                        }
+                        html += `</div>`;
+                    }
+
+                    entry.innerHTML = html;
+                    content.appendChild(entry);
+                    content.scrollTop = content.scrollHeight;
+                };
+
+                logWs.onclose = function() {
+                    document.getElementById('logStatus').className = 'status';
+                    setTimeout(connectLogWebSocket, 3000);
+                };
+            } catch (e) {
+                console.error('WebSocket 连接失败:', e);
+            }
+        }
+
+        // 展开/收起日志元数据
+        function toggleLogMeta(metaId) {
+            const metaDiv = document.getElementById(metaId);
+            if (metaDiv) {
+                metaDiv.style.display = metaDiv.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        // 面板切换
+        function toggleLogPanel() {
+            const panel = document.getElementById('logPanel');
+            const overlay = document.getElementById('overlay');
+            const isActive = panel.classList.contains('active');
+
+            closeAllPanels();
+
+            if (!isActive) {
+                panel.classList.add('active');
+                overlay.classList.add('active');
+            }
+        }
+
+        function toggleSettings() {
+            const panel = document.getElementById('settingsPanel');
+            panel.classList.toggle('active');
+        }
+
+        function closeAllPanels() {
+            document.getElementById('historyPanel').classList.remove('active');
+            document.getElementById('historyToggle').classList.remove('active');
+            document.getElementById('logPanel').classList.remove('active');
+            document.getElementById('settingsPanel').classList.remove('active');
+            document.getElementById('cwdPanel').classList.remove('active');
+            document.getElementById('overlay').classList.remove('active');
+        }
+
+        function toggleHistoryPanel() {
+            const panel = document.getElementById('historyPanel');
+            const toggle = document.getElementById('historyToggle');
+            const overlay = document.getElementById('overlay');
+            const isActive = panel.classList.contains('active');
+
+            if (isActive) {
+                panel.classList.remove('active');
+                toggle.classList.remove('active');
+                overlay.classList.remove('active');
+            } else {
+                closeAllPanels();
+                panel.classList.add('active');
+                toggle.classList.add('active');
+                overlay.classList.add('active');
+                renderHistoryList();
+            }
+        }
+
+        function handleKeyDown(event) {
+            // Enter 不再发送消息，仅用于换行
+        }
+
+        // 插入命令到输入框
+        function insertCommand(cmd) {
+            const input = document.getElementById('userInput');
+            input.value = cmd;
+            input.focus();
+            // 将光标移到末尾
+            input.setSelectionRange(input.value.length, input.value.length);
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+
+            // 允许只有图片没有文字的情况
+            if (!message && pendingImages.length === 0) return;
+            if (isGenerating) return;
+
+            // 保存当前待发送的图片副本
+            const imagesToSend = [...pendingImages];
+
+            // 显示用户消息（图片在气泡上方单独显示，不显示文字标识）
+            addMessage('user', message, false, imagesToSend);
+            input.value = '';
+
+            // 立即清空图片预览区域
+            clearPendingImages();
+
+            isGenerating = true;
+            document.getElementById('sendBtn').disabled = true;
+
+            // 上传图片
+            let imagePaths = [];
+            if (imagesToSend.length > 0) {
+                try {
+                    const uploadPromises = imagesToSend.map(img => uploadSingleImage(img));
+                    imagePaths = await Promise.all(uploadPromises);
+                } catch (error) {
+                    showToast('图片上传失败: ' + error.message, 'error');
+                    isGenerating = false;
+                    document.getElementById('sendBtn').disabled = false;
+                    return;
+                }
+            }
+
+            // 检查命令（命令模式下不支持图片）
+            const lowerMessage = message.toLowerCase();
+            console.log('Checking command:', lowerMessage);
+            if (lowerMessage.startsWith('/plan')) {
+                console.log('Executing /plan command');
+                await handlePlanCommand(message);
+            } else if (lowerMessage.startsWith('/brainstorm') || lowerMessage.startsWith('/bs')) {
+                console.log('Executing /brainstorm command');
+                await handleBrainstormCommand(message);
+            } else if (lowerMessage.startsWith('/ppt')) {
+                console.log('Executing /ppt command');
+                await handlePPTCommand(message);
+            } else {
+                console.log('Executing normal message');
+                await streamResponse(message, imagePaths);
+            }
+        }
+
+        async function handlePlanCommand(message) {
+            // 提取任务描述
+            const task = message.slice(5).trim() || '分析当前项目';
+
+            const prompt = `请使用 planning-with-files 模式来完成以下任务。
+
+## 工作流程
+
+1. **创建规划文件**
+   首先在工作目录下创建以下文件：
+   - \`task_plan.md\` - 详细的执行计划
+   - \`findings.md\` - 发现的问题和关键信息
+   - \`progress.md\` - 进度跟踪
+
+2. **执行步骤**
+   - 分析当前项目结构和上下文
+   - 将任务分解为具体步骤
+   - 逐步执行，每个步骤完成后更新 progress.md
+   - 遇到问题时记录到 findings.md
+
+3. **输出格式**
+   - 每个步骤执行前说明即将做什么
+   - 执行后展示结果
+   - 完成时更新所有规划文件
+
+## 任务
+
+${task}`;
+
+            await streamResponse(prompt);
+        }
+
+        async function handleBrainstormCommand(message) {
+            // 提取想法描述（支持 /brainstorm 或 /bs）
+            let idea;
+            const lowerMsg = message.toLowerCase();
+            if (lowerMsg.startsWith('/brainstorm')) {
+                idea = message.slice(11).trim();
+            } else {
+                idea = message.slice(3).trim();
+            }
+            if (!idea) {
+                idea = '探索当前项目的改进方向';
+            }
+
+            // 生成日期字符串
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0];
+
+            const prompt = '请使用 brainstorming 模式来探索以下想法。\n\n' +
+                '## 工作流程\n\n' +
+                '1. **理解上下文**\n' +
+                '   - 检查当前项目结构\n' +
+                '   - 了解技术栈和约束条件\n' +
+                '   - 回顾相关文档\n\n' +
+                '2. **探索阶段**（一次只问一个问题）\n' +
+                '   - 明确目的：要解决什么问题？\n' +
+                '   - 了解约束：时间、资源、技术限制？\n' +
+                '   - 定义成功：什么算成功完成？\n\n' +
+                '3. **设计方案**\n' +
+                '   - 提出 2-3 种不同方案\n' +
+                '   - 分析各方案的优缺点\n' +
+                '   - 给出推荐方案和理由\n\n' +
+                '4. **细化设计**\n' +
+                '   - 架构：组件如何组织？\n' +
+                '   - 数据流：数据如何流动？\n' +
+                '   - 错误处理：异常情况如何处理？\n' +
+                '   - 测试：如何验证正确性？\n\n' +
+                '5. **输出设计文档**\n' +
+                '   将最终设计保存到 `docs/plans/' + dateStr + '-design.md`\n\n' +
+                '## 核心原则\n\n' +
+                '- 只做设计，不写代码\n' +
+                '- YAGNI 原则：只设计必要的功能\n' +
+                '- 每次只问一个问题，等待用户回复\n' +
+                '- 用选择题代替开放性问题\n\n' +
+                '## 想法\n\n' +
+                idea;
+
+            await streamResponse(prompt);
+        }
+
+        // ===================== PPT 制作功能 =====================
+
+        // PPT 状态管理
+        let pptSession = {
+            sessionId: null,
+            sourceFile: null,
+            outline: null,
+            currentSlideIndex: 0,
+            isGenerating: false
+        };
+
+        // 处理 /ppt 命令 - 简化版对话式交互
+        async function handlePPTCommand(message) {
+            const args = message.slice(4).trim();
+
+            // /ppt generate - 生成最终 PPT
+            if (args.toLowerCase() === 'generate' || args.toLowerCase() === '生成') {
+                await generateFinalPPT();
+                return;
+            }
+
+            // /ppt help - 显示帮助
+            if (args.toLowerCase() === 'help' || args === '帮助') {
+                addMessage('assistant', `📊 **PPT 制作帮助**
+
+**使用方法：**
+1. 输入 \`/ppt 你的需求\` 开始制作
+   例如：\`/ppt 制作一个关于Python入门的演示文稿，共5页\`
+
+2. 我会生成一个大纲，你可以：
+   - 直接确认生成
+   - 或者提出修改意见
+
+3. 确认后输入 \`/ppt generate\` 生成最终 PPT 文件
+
+**示例对话：**
+- 用户：\`/ppt 公司年会总结报告，包含业绩回顾、团队建设、明年规划\`
+- 我会返回大纲...
+- 用户：\`大纲可以，生成吧\` 或 \`/ppt generate\`
+- 我会生成 PPT 并提供下载链接`);
+                return;
+            }
+
+            // 普通 /ppt 命令 - 生成大纲
+            if (!args) {
+                addMessage('assistant', '📊 请描述你要制作的 PPT 内容。\n\n例如：`/ppt 制作一个产品介绍PPT，包含功能特点、使用场景、价格方案`');
+                return;
+            }
+
+            // 初始化 PPT 会话
+            pptSession.sessionId = currentChatId;
+
+            // 构建生成大纲的 prompt
+            const pptPrompt = `请帮我设计一个 PPT 大纲。
+
+**需求：** ${args}
+
+**输出格式要求：**
+请按以下 JSON 格式输出大纲：
+
+\`\`\`json
+{
+  "title": "PPT 主标题",
+  "subtitle": "副标题",
+  "slides": [
+    {
+      "title": "第1页标题",
+      "subtitle": "副标题（可选）",
+      "bullets": ["要点1", "要点2", "要点3"],
+      "layout_type": "content"
+    }
+  ]
+}
+\`\`\`
+
+**注意事项：**
+1. 一般 5-10 页为宜
+2. 每页要点 3-5 个
+3. 布局类型可选：title（标题页）、content（内容页）、two_column（两栏）、conclusion（总结页）
+4. 请确保内容专业、结构清晰`;
+
+            // 发送给 AI 生成大纲
+            await streamResponse(pptPrompt);
+
+            // 提示用户下一步
+            setTimeout(() => {
+                addMessage('assistant', '---\n💡 如果大纲满意，请输入 `/ppt generate` 生成 PPT 文件。\n   如果需要修改，请告诉我具体调整内容。');
+            }, 500);
+        }
+
+        // 生成最终 PPT
+        async function generateFinalPPT() {
+            addMessage('assistant', '📊 正在生成 PPT 文件...');
+
+            try {
+                const response = await fetch('/api/ppt/outline', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: currentChatId,
+                        requirement: '根据之前讨论的内容生成 PPT'
+                    })
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                if (data.type === 'outline_ready') {
+                                    // 大纲已生成，现在生成 PPT 文件
+                                    const finalizeResponse = await fetch('/api/ppt/finalize', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ session_id: currentChatId })
+                                    });
+
+                                    const finalizeData = await finalizeResponse.json();
+                                    if (finalizeData.status === 'ok') {
+                                        addMessage('assistant', `✅ **PPT 生成完成！**\n\n📄 文件：${finalizeData.filename}\n📊 共 ${finalizeData.slide_count} 页\n\n[📥 点击下载 PPT](${finalizeData.download_url})`);
+                                    } else {
+                                        addMessage('assistant', `❌ 生成失败：${finalizeData.message}`);
+                                    }
+                                } else if (data.type === 'error') {
+                                    addMessage('assistant', `❌ 错误：${data.message}`);
+                                }
+                            } catch (e) {
+                                // 忽略解析错误
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                addMessage('assistant', `❌ 生成失败：${e.message}\n\n请确保你已经提供了 PPT 需求说明。使用 \`/ppt 需求描述\` 开始。`);
+            }
+        }
+
+        // 进入 PPT 模式（从头部按钮调用）
+        async function streamResponse(message, images = []) {
+            const contentDiv = addMessage('assistant', '', true);
+            let fullContent = '';
+
+            // 获取当前选择的 Agent
+            const agentSelect = document.getElementById('agentSelect');
+            const selectedAgent = agentSelect ? agentSelect.value : 'default';
+
+            // 获取当前工作目录
+            const effectiveCwd = currentCwd;
+
+            // 获取工具权限设置
+            const effectiveTools = getEffectiveTools();
+
+            // 构建请求体，不包含 null 值
+            const requestBody = {
+                session_id: currentChatId,
+                message: message
+            };
+            if (selectedAgent && selectedAgent !== 'default') {
+                requestBody.agent = selectedAgent;
+            }
+            if (effectiveTools && effectiveTools.length > 0) {
+                requestBody.allowed_tools = effectiveTools;
+            }
+            if (effectiveCwd) {
+                requestBody.cwd = effectiveCwd;
+            }
+            if (currentModel) {
+                requestBody.model = currentModel;
+            }
+            if (images && images.length > 0) {
+                requestBody.images = images;
+            }
+
+            // 获取权限模式
+            const permissionModeSelect = document.getElementById('permissionModeSelect');
+            const permissionMode = permissionModeSelect ? permissionModeSelect.value : 'auto';
+            requestBody.permission_mode = permissionMode;
+
+            console.log('Sending request:', requestBody);
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                showPauseBar();
+
+                while (true) {
+                    await waitIfPaused();
+
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                if (data.type === 'content') {
+                                    if (contentDiv.querySelector('.loading')) {
+                                        contentDiv.innerHTML = '';
+                                    }
+                                    fullContent += data.text;
+                                    contentDiv.innerHTML = formatContent(fullContent);
+                                    scrollToBottom();
+                                } else if (data.type === 'tool_call') {
+                                    // 显示工具调用
+                                    if (contentDiv.querySelector('.loading')) {
+                                        contentDiv.innerHTML = '';
+                                    }
+                                    const toolName = data.name || 'unknown';
+                                    const toolInput = data.input || {};
+                                    let toolInfo = `\n<div class="tool-call">🔧 <strong>调用工具:</strong> ${escapeHtml(toolName)}`;
+                                    if (Object.keys(toolInput).length > 0) {
+                                        toolInfo += `\n<span style="color: var(--text-secondary); font-size: 11px;">${escapeHtml(JSON.stringify(toolInput, null, 2).substring(0, 200))}</span>`;
+                                    }
+                                    toolInfo += `</div>`;
+                                    fullContent += toolInfo;
+                                    contentDiv.innerHTML = formatContent(fullContent);
+                                    scrollToBottom();
+                                } else if (data.type === 'tool_result') {
+                                    // 显示工具结果
+                                    const resultContent = data.content || '';
+                                    if (resultContent) {
+                                        const shortResult = resultContent.length > 300 ? resultContent.substring(0, 300) + '...' : resultContent;
+                                        fullContent += `\n<div class="process-info">✅ 工具结果: ${escapeHtml(shortResult)}</div>`;
+                                        contentDiv.innerHTML = formatContent(fullContent);
+                                        scrollToBottom();
+                                    }
+                                } else if (data.type === 'process') {
+                                    // 显示过程信息
+                                    if (contentDiv.querySelector('.loading')) {
+                                        contentDiv.innerHTML = '';
+                                    }
+                                    const text = data.text;
+                                    if (text.trim() && !text.includes('DEBUG')) {
+                                        fullContent += `\n<div class="process-info">⚡ ${escapeHtml(text)}</div>`;
+                                        contentDiv.innerHTML = formatContent(fullContent);
+                                        scrollToBottom();
+                                    }
+                                } else if (data.type === 'stderr') {
+                                    // 显示 stderr 内容
+                                    const text = data.text;
+                                    if (text.trim() && !text.includes('DEBUG')) {
+                                        if (contentDiv.querySelector('.loading')) {
+                                            contentDiv.innerHTML = '';
+                                        }
+                                        fullContent += text;
+                                        contentDiv.innerHTML = formatContent(fullContent);
+                                        scrollToBottom();
+                                    }
+                                } else if (data.type === 'done') {
+                                    // 如果内容为空，显示提示
+                                    if (!fullContent.trim()) {
+                                        fullContent = '<span style="color: var(--text-secondary); font-style: italic;">（模型返回内容为空）</span>';
+                                        contentDiv.innerHTML = fullContent;
+                                    }
+                                    // 保存对话历史
+                                    saveMessageToHistory('user', message);
+                                    saveMessageToHistory('assistant', fullContent);
+                                    saveCurrentChatToHistory();
+                                    isGenerating = false;
+                                    document.getElementById('sendBtn').disabled = false;
+                                    hidePauseBar();
+                                } else if (data.type === 'error') {
+                                    contentDiv.innerHTML = `<span style="color: #e94560;">错误: ${data.message}</span>`;
+                                    isGenerating = false;
+                                    document.getElementById('sendBtn').disabled = false;
+                                    hidePauseBar();
+                                }
+                            } catch (e) {
+                                console.error('解析数据失败:', e);
+                            }
+                        }
+                    }
+                }
+
+                // 流结束后，如果仍在生成状态（未收到 done 事件），做兜底处理
+                if (isGenerating) {
+                    if (!fullContent.trim()) {
+                        contentDiv.innerHTML = '<span style="color: var(--text-secondary); font-style: italic;">（模型返回内容为空）</span>';
+                    }
+                    isGenerating = false;
+                    document.getElementById('sendBtn').disabled = false;
+                    hidePauseBar();
+                }
+            } catch (error) {
+                contentDiv.innerHTML = `<span style="color: #e94560;">请求失败: ${error.message}</span>`;
+                isGenerating = false;
+                document.getElementById('sendBtn').disabled = false;
+            }
+        }
+
+        function addMessage(role, content, isStreaming = false, images = []) {
+            const messages = document.getElementById('messages');
+
+            // 如果有图片，先创建独立的图片行
+            if (images && images.length > 0) {
+                const imagesRow = document.createElement('div');
+                imagesRow.className = `message ${role} has-images-only`;
+                imagesRow.innerHTML = `
+                    <div class="avatar"></div>
+                    <div class="message-images-container">
+                        <div class="message-images">
+                            ${images.map(img => `
+                                <div class="message-image" onclick="openLightbox('${img.base64}')">
+                                    <img src="${img.base64}" alt="发送的图片">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                messages.appendChild(imagesRow);
+            }
+
+            // 创建消息行（有内容或流式输出时）
+            const hasContent = content && content.trim();
+            if (isStreaming || hasContent) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${role}`;
+                messageDiv.innerHTML = `
+                    <div class="avatar">${role === 'user' ? '你' : 'C'}</div>
+                    <div class="message-wrapper">
+                        <div class="message-content">${isStreaming ? '<div class="loading"><div class="loading-dots"><span></span><span></span><span></span></div><span class="loading-text">正在思考中...</span></div>' : content}</div>
+                    </div>
+                `;
+                messages.appendChild(messageDiv);
+                messages.scrollTop = messages.scrollHeight;
+                return messageDiv.querySelector('.message-content');
+            }
+
+            messages.scrollTop = messages.scrollHeight;
+            return null;
+        }
+
+        function formatContent(text) {
+            // 保护已注入的 HTML 标签
+            let result = text;
+
+            // 处理 markdown 代码块（但不在 HTML 标签内）
+            result = result.replace(/```(\w+)?\n([\s\S]*?)```/g, function(match, lang, code) {
+                return `<pre><code>${escapeHtml(code)}</code></pre>`;
+            });
+
+            // 处理行内代码（简单的反引号）
+            result = result.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+
+            // 处理换行（但不在已有的 div 内）
+            result = result.replace(/\n(?!.*<div)/g, '<br>');
+
+            return result;
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function scrollToBottom() {
+            const messages = document.getElementById('messages');
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        // 大输入窗口功能
+        function openInputModal() {
+            const modal = document.getElementById('inputModal');
+            const modalTextarea = document.getElementById('modalTextarea');
+            const userInput = document.getElementById('userInput');
+
+            // 复制当前输入框内容到模态框
+            modalTextarea.value = userInput.value;
+
+            // 显示模态框
+            modal.classList.add('active');
+
+            // 聚焦到文本框
+            setTimeout(() => modalTextarea.focus(), 100);
+        }
+
+        function closeInputModal() {
+            const modal = document.getElementById('inputModal');
+            const modalTextarea = document.getElementById('modalTextarea');
+
+            modal.classList.remove('active');
+            modalTextarea.value = '';
+        }
+
+        function handleModalKeyDown(event) {
+            if (event.key === 'Escape') {
+                closeInputModal();
+            }
+        }
+
+        function sendFromModal() {
+            const modalTextarea = document.getElementById('modalTextarea');
+            const userInput = document.getElementById('userInput');
+
+            // 将模态框内容复制到主输入框
+            userInput.value = modalTextarea.value;
+
+            // 关闭模态框
+            closeInputModal();
+
+            // 发送消息
+            if (userInput.value.trim()) {
+                sendMessage();
+            }
+        }
+
+        // 权限请求处理
+        let currentPermissionRequest = null;
+        let permissionPollingInterval = null;
+
+        function startPermissionPolling() {
+            // 每500ms检查一次权限请求
+            if (permissionPollingInterval) return;
+            permissionPollingInterval = setInterval(checkPermissionRequests, 500);
+        }
+
+        function stopPermissionPolling() {
+            if (permissionPollingInterval) {
+                clearInterval(permissionPollingInterval);
+                permissionPollingInterval = null;
+            }
+        }
+
+        async function checkPermissionRequests() {
+            if (!isGenerating) return;
+
+            try {
+                const response = await fetch(`/api/permission/${currentChatId}/pending`);
+                const data = await response.json();
+
+                if (data.has_pending) {
+                    // 获取详细的权限请求
+                    const detailResponse = await fetch(`/api/permission/${currentChatId}`);
+                    const detailData = await detailResponse.json();
+
+                    if (detailData.requests && detailData.requests.length > 0) {
+                        showPermissionModal(detailData.requests[0]);
+                    }
+                }
+            } catch (e) {
+                console.error('检查权限请求失败:', e);
+            }
+        }
+
+        function showPermissionModal(request) {
+            currentPermissionRequest = request;
+            const modal = document.getElementById('permissionModal');
+            const body = document.getElementById('permissionBody');
+            const typeBadge = document.getElementById('permissionType');
+
+            // 设置类型标签
+            typeBadge.textContent = request.tool_name || '操作请求';
+
+            // 构建内容
+            let html = '';
+
+            if (request.tool_name) {
+                html += `<div class="permission-tool">
+                    <div class="permission-tool-name">🔧 ${request.tool_name}</div>`;
+
+                if (request.args) {
+                    html += `<div class="permission-tool-args">${escapeHtml(JSON.stringify(request.args, null, 2))}</div>`;
+                }
+                html += '</div>';
+            }
+
+            if (request.file_path) {
+                html += `<div class="permission-info">📁 文件: ${escapeHtml(request.file_path)}</div>`;
+            }
+
+            if (request.diff) {
+                html += `<div class="permission-diff">
+                    <div class="permission-diff-header">📝 文件变更</div>
+                    <div class="permission-diff-content">${formatDiff(request.diff)}</div>
+                </div>`;
+            }
+
+            if (request.message) {
+                html += `<div class="permission-info">${escapeHtml(request.message)}</div>`;
+            }
+
+            body.innerHTML = html;
+            modal.classList.add('active');
+
+            // 停止轮询直到用户响应
+            stopPermissionPolling();
+        }
+
+        function formatDiff(diff) {
+            // 简单的差异格式化
+            return diff.split('\n').map(line => {
+                if (line.startsWith('+') && !line.startsWith('+++')) {
+                    return `<span class="add">${escapeHtml(line)}</span>`;
+                } else if (line.startsWith('-') && !line.startsWith('---')) {
+                    return `<span class="remove">${escapeHtml(line)}</span>`;
+                }
+                return escapeHtml(line);
+            }).join('\n');
+        }
+
+        async function respondPermission(approved) {
+            if (!currentPermissionRequest) return;
+
+            const modal = document.getElementById('permissionModal');
+
+            try {
+                const response = await fetch('/api/permission/respond', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: currentChatId,
+                        request_id: currentPermissionRequest.id,
+                        approved: approved
+                    })
+                });
+
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    modal.classList.remove('active');
+                    currentPermissionRequest = null;
+                    // 恢复轮询
+                    if (isGenerating) {
+                        startPermissionPolling();
+                    }
+                }
+            } catch (e) {
+                console.error('响应权限请求失败:', e);
+            }
+        }
+
+        function resetContext() {
+            // 清除后端会话历史，但保留界面上的对话显示
+            fetch('/api/clear', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id: currentChatId })
+            });
+
+            // 在界面上插入一条分隔提示
+            const messages = document.getElementById('messages');
+            const divider = document.createElement('div');
+            divider.style.cssText = 'text-align: center; padding: 8px 0; color: var(--text-secondary); font-size: 12px; border-top: 1px dashed var(--border-color); margin: 12px 40px;';
+            divider.textContent = '— 上下文已重置，后续消息将不携带以上历史 —';
+            messages.appendChild(divider);
+            scrollToBottom();
+
+            // 按钮闪烁反馈
+            const btn = document.getElementById('resetContextBtn');
+            btn.classList.add('active');
+            setTimeout(() => btn.classList.remove('active'), 1500);
+        }
+
+        function clearChat() {
+            // 先保存当前对话
+            saveCurrentChatToHistory();
+
+            // 重置生成状态
+            isGenerating = false;
+            isPaused = false;
+            if (pauseResolve) {
+                pauseResolve();
+                pauseResolve = null;
+            }
+
+            // 重置按钮状态
+            document.getElementById('sendBtn').disabled = false;
+            hidePauseBar();
+
+            // 清空待发送的图片
+            if (typeof pendingImages !== 'undefined') {
+                pendingImages = [];
+                if (typeof updateImagePreview === 'function') {
+                    updateImagePreview();
+                }
+            }
+
+            // 创建新的会话 ID
+            currentChatId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            sessions[currentChatId] = [];
+
+            // 重置界面
+            document.getElementById('messages').innerHTML = `
+                <div class="message assistant">
+                    <div class="avatar">C</div>
+                    <div class="message-content">你好！我是 Claude，支持以下快捷命令：
+
+• /brainstorm 想法 - 头脑风暴模式，先探索设计再实现
+• /plan 任务 - 文件规划模式，创建任务规划文档
+• /ppt 需求 - PPT 制作模式，交互式创建演示文稿
+
+直接输入你的问题或需求即可开始对话。</div>
+                </div>
+            `;
+
+            // 清除后端会话
+            fetch('/api/clear', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id: currentChatId })
+            });
+
+            // 重连 WebSocket 到新会话
+            if (logWs) {
+                logWs.close();
+            }
+            connectLogWebSocket();
+
+            // 更新工作目录显示
+            loadCwd();
+
+            // 更新历史列表
+            saveCurrentChatToHistory();
+        }
+
+        // 暂停功能
+        function togglePause() {
+            const pauseBtn = document.getElementById('pauseBtn');
+            if (isPaused) {
+                isPaused = false;
+                pauseBtn.textContent = '⏸️';
+                pauseBtn.title = '暂停生成';
+                pauseBtn.classList.remove('resumed');
+                if (pauseResolve) { pauseResolve(); pauseResolve = null; }
+            } else {
+                isPaused = true;
+                pauseBtn.textContent = '▶️';
+                pauseBtn.title = '继续生成';
+                pauseBtn.classList.add('resumed');
+            }
+        }
+
+        async function waitIfPaused() {
+            if (isPaused) {
+                await new Promise(resolve => { pauseResolve = resolve; });
+            }
+        }
+
+        function showPauseBar() {
+            const pauseBtn = document.getElementById('pauseBtn');
+            pauseBtn.style.display = 'flex';
+            pauseBtn.textContent = '⏸️';
+            pauseBtn.classList.remove('resumed');
+            pauseBtn.title = '暂停生成';
+            isPaused = false;
+            // 开始权限请求轮询
+            startPermissionPolling();
+        }
+
+        function hidePauseBar() {
+            const pauseBtn = document.getElementById('pauseBtn');
+            pauseBtn.style.display = 'none';
+            pauseBtn.classList.remove('resumed');
+            isPaused = false;
+            if (pauseResolve) { pauseResolve(); pauseResolve = null; }
+            // 停止权限请求轮询
+            stopPermissionPolling();
+        }
+    </script>
+</body>
+</html>

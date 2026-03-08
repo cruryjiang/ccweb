@@ -1,0 +1,29 @@
+{
+  "models": [
+    {
+      "id": "gemini-3-pro-preview",
+      "name": "gemini-3-pro-preview",
+      "api_name": "sk-ogy2zji2mjgtotfmmy00nwizlweznwmtngm1ytc0mta4ngu2",
+      "url": "https://openai.mybank.cn/api/anthropic",
+      "description": "",
+      "tier": "custom"
+    },
+    {
+      "id": "glm-5",
+      "name": "glm-5",
+      "api_name": "sk-ogy2zji2mjgtotfmmy00nwizlweznwmtngm1ytc0mta4ngu2",
+      "url": "https://openai.mybank.cn/api/anthropic",
+      "description": "",
+      "tier": "custom"
+    },
+    {
+      "id": "claude-opus-4-6",
+      "name": "claude-opus-4-6",
+      "api_name": "sk-ogy2zji2mjgtotfmmy00nwizlweznwmtngm1ytc0mta4ngu2",
+      "url": "https://openai.mybank.cn/api/anthropic",
+      "description": "",
+      "tier": "custom"
+    }
+  ],
+  "default_model": "claude-opus-4-6"
+}
