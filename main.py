@@ -467,9 +467,11 @@ async def stream_claude_response(
             # 使用 stream-json 格式发送多模态消息（文本 + 图片）
             content_blocks = []
 
-            # 添加文本内容
+            # 添加文本内容（图片模式下必须有文本块）
             if prompt:
                 content_blocks.append({"type": "text", "text": prompt})
+            else:
+                content_blocks.append({"type": "text", "text": "请分析这张图片"})
 
             # 添加图片内容块
             for img_path in images:
@@ -501,9 +503,13 @@ async def stream_claude_response(
                         add_log_entry(session_id, "warning", f"读取图片失败 {img_path}: {str(e)}")
 
             # 构建 stream-json 格式的消息
+            # CLI 期望格式: {"type":"user","message":{"role":"user","content":[...]}}
             stream_message = json.dumps({
-                "type": "user_message",
-                "content": content_blocks
+                "type": "user",
+                "message": {
+                    "role": "user",
+                    "content": content_blocks
+                }
             }, ensure_ascii=False)
 
             prompt_file = tempfile.NamedTemporaryFile(
@@ -523,17 +529,19 @@ async def stream_claude_response(
             prompt_file.close()
 
         # 构建命令参数
+        # 所有模式统一使用 --verbose --output-format stream-json
+        # (--print 模式下 --output-format stream-json 要求 --verbose)
+        # (--input-format stream-json 要求 --output-format stream-json)
         cmd_args = [
             CLAUDE_CMD,
             "-p",  # --print 的简写
+            "--verbose",
+            "--output-format", "stream-json",
         ]
 
         if has_images:
-            # 图片模式：使用 stream-json 输入/输出格式
-            cmd_args.extend(["--input-format", "stream-json", "--output-format", "stream-json"])
-        else:
-            # 文本模式：使用 verbose 输出
-            cmd_args.append("--verbose")
+            # 图片模式：额外需要 stream-json 输入格式
+            cmd_args.extend(["--input-format", "stream-json"])
 
         # 添加 Agent 参数
         if agent and agent != "default":
@@ -580,9 +588,10 @@ async def stream_claude_response(
         add_log_entry(session_id, "process", f"子进程已启动，PID: {process.pid}")
 
         # 记录完整的 prompt
-        add_log_entry(session_id, "prompt", f"发送 Prompt ({len(prompt)} 字符)", {
-            "content": prompt,
-            "full_length": len(prompt),
+        actual_length = os.path.getsize(prompt_file.name) if os.path.exists(prompt_file.name) else len(prompt)
+        add_log_entry(session_id, "prompt", f"发送 Prompt ({actual_length} 字符{'，含图片数据' if has_images else ''})", {
+            "content": prompt if not has_images else f"[stream-json 多模态消息，文本: {prompt or '(无)'}，图片: {len(images)}张]",
+            "full_length": actual_length,
             "model": model,
             "agent": agent or "default",
             "permission_mode": permission_mode,
@@ -610,7 +619,7 @@ async def stream_claude_response(
                 consecutive_timeouts = 0  # 重置超时计数
 
                 if stream_name == "stdout":
-                    # 处理 JSON 输出（兼容 verbose 和 stream-json 格式）
+                    # 处理 stream-json 格式输出（文本和图片模式统一）
                     text = text.strip()
                     if text:
                         newline = '\n'
@@ -621,37 +630,47 @@ async def stream_claude_response(
                             try:
                                 data = json.loads(line)
                                 if isinstance(data, dict):
-                                    if has_images:
-                                        # stream-json 输出格式
-                                        msg_type = data.get('type')
-                                        if msg_type == 'assistant':
-                                            msg = data.get('message', {})
-                                            if msg.get('type') == 'text':
-                                                yield f"data: {json.dumps({'type': 'content', 'text': msg.get('text', '')}, ensure_ascii=False)}\n\n"
-                                            elif msg.get('type') == 'tool_use':
-                                                yield f"data: {json.dumps({'type': 'tool_call', 'name': msg.get('name'), 'input': msg.get('input', {})}, ensure_ascii=False)}\n\n"
-                                        elif msg_type == 'user':
-                                            msg = data.get('message', {})
-                                            if msg.get('type') == 'tool_result':
-                                                content = msg.get('content', '')
-                                                if isinstance(content, list):
-                                                    content = '\n'.join(
-                                                        item.get('text', '') for item in content
-                                                        if isinstance(item, dict) and item.get('type') == 'text'
-                                                    )
-                                                yield f"data: {json.dumps({'type': 'tool_result', 'content': content}, ensure_ascii=False)}\n\n"
-                                        # 忽略 system/result 类型消息
-                                    else:
-                                        # verbose 输出格式（原有逻辑）
-                                        if data.get('type') == 'text':
-                                            yield f"data: {json.dumps({'type': 'content', 'text': data.get('content', '')}, ensure_ascii=False)}\n\n"
-                                        elif data.get('type') == 'tool_call':
-                                            yield f"data: {json.dumps({'type': 'tool_call', 'name': data.get('name'), 'input': data.get('input', {})}, ensure_ascii=False)}\n\n"
-                                        elif data.get('type') == 'tool_result':
-                                            yield f"data: {json.dumps({'type': 'tool_result', 'content': data.get('content', '')}, ensure_ascii=False)}\n\n"
-                                        else:
-                                            # 其他类型作为普通内容
-                                            yield f"data: {json.dumps({'type': 'content', 'text': line}, ensure_ascii=False)}\n\n"
+                                    msg_type = data.get('type')
+                                    if msg_type == 'system':
+                                        # tools 可能是字符串列表 ["Task","Bash",...] 或对象列表
+                                        raw_tools = data.get('tools', [])
+                                        tool_names = [t if isinstance(t, str) else t.get('name', '') for t in raw_tools]
+                                        yield f"data: {json.dumps({'type': 'system', 'model': data.get('model', ''), 'tools': tool_names}, ensure_ascii=False)}\n\n"
+                                    elif msg_type == 'assistant':
+                                        msg = data.get('message', {})
+                                        contents = msg.get('content', [])
+                                        if isinstance(contents, list):
+                                            for item in contents:
+                                                if item.get('type') == 'text':
+                                                    yield f"data: {json.dumps({'type': 'content', 'text': item.get('text', '')}, ensure_ascii=False)}\n\n"
+                                                elif item.get('type') == 'tool_use':
+                                                    yield f"data: {json.dumps({'type': 'tool_call', 'name': item.get('name', ''), 'input': item.get('input', {}), 'id': item.get('id', '')}, ensure_ascii=False)}\n\n"
+                                    elif msg_type == 'user':
+                                        msg = data.get('message', {})
+                                        contents = msg.get('content', [])
+                                        tool_use_result = data.get('tool_use_result', {})
+                                        if isinstance(contents, list):
+                                            for item in contents:
+                                                if item.get('type') == 'tool_result':
+                                                    content = item.get('content', '')
+                                                    if isinstance(content, list):
+                                                        content = '\n'.join(
+                                                            c.get('text', '') for c in content
+                                                            if isinstance(c, dict) and c.get('type') == 'text'
+                                                        )
+                                                    result_data = {
+                                                        'type': 'tool_result',
+                                                        'content': content,
+                                                        'tool_use_id': item.get('tool_use_id', ''),
+                                                    }
+                                                    if tool_use_result:
+                                                        result_data['summary'] = {
+                                                            k: v for k, v in tool_use_result.items()
+                                                            if k != 'content'
+                                                        }
+                                                    yield f"data: {json.dumps(result_data, ensure_ascii=False)}\n\n"
+                                    elif msg_type == 'result':
+                                        yield f"data: {json.dumps({'type': 'result', 'cost': data.get('total_cost_usd'), 'duration': data.get('duration_ms')}, ensure_ascii=False)}\n\n"
                                 else:
                                     # 非 dict JSON，当作普通文本
                                     yield f"data: {json.dumps({'type': 'content', 'text': line + newline}, ensure_ascii=False)}\n\n"

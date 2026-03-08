@@ -913,6 +913,90 @@
             color: #4ade80;
         }
 
+        .tool-call-params {
+            margin-top: 6px;
+            color: var(--text-secondary);
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .tool-call-params .param-key {
+            color: #6495ed;
+        }
+
+        .tool-call-params .param-value {
+            color: var(--text-primary);
+            opacity: 0.8;
+        }
+
+        .tool-details-toggle {
+            display: inline-block;
+            margin-top: 6px;
+            padding: 2px 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .tool-details-toggle:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-primary);
+        }
+
+        .tool-details-full {
+            display: none;
+            margin-top: 6px;
+            padding: 8px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            font-size: 11px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .tool-details-full.expanded {
+            display: block;
+        }
+
+        .tool-result {
+            background: rgba(100, 149, 237, 0.08);
+            border-left: 3px solid #6495ed;
+            padding: 10px 14px;
+            margin: 10px 0;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            animation: processFadeIn 0.3s ease-out;
+        }
+
+        .tool-result strong {
+            color: #6495ed;
+        }
+
+        .tool-result-summary {
+            margin-top: 4px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .result-info {
+            background: rgba(167, 139, 250, 0.08);
+            border-left: 3px solid #a78bfa;
+            padding: 10px 14px;
+            margin: 10px 0;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+            animation: processFadeIn 0.3s ease-out;
+        }
+
         /* 设置面板 */
         .settings-panel {
             position: fixed;
@@ -3797,6 +3881,16 @@ ${task}`;
                                     fullContent += data.text;
                                     contentDiv.innerHTML = formatContent(fullContent);
                                     scrollToBottom();
+                                } else if (data.type === 'system') {
+                                    // 系统初始化消息
+                                    if (contentDiv.querySelector('.loading')) {
+                                        contentDiv.innerHTML = '';
+                                    }
+                                    const model = data.model || '';
+                                    const toolCount = (data.tools || []).length;
+                                    fullContent += `\n<div class="process-info">⚙️ 模型: ${escapeHtml(model)}，可用工具: ${toolCount} 个</div>`;
+                                    contentDiv.innerHTML = formatContent(fullContent);
+                                    scrollToBottom();
                                 } else if (data.type === 'tool_call') {
                                     // 显示工具调用
                                     if (contentDiv.querySelector('.loading')) {
@@ -3804,9 +3898,25 @@ ${task}`;
                                     }
                                     const toolName = data.name || 'unknown';
                                     const toolInput = data.input || {};
+                                    const toolId = (data.id || '').substring(0, 8);
+                                    // 提取关键参数摘要
+                                    let paramSummary = '';
+                                    if (toolInput.pattern) paramSummary += `模式: ${toolInput.pattern}  `;
+                                    if (toolInput.file_path) paramSummary += `文件: ${toolInput.file_path}  `;
+                                    if (toolInput.path) paramSummary += `路径: ${toolInput.path}  `;
+                                    if (toolInput.command) paramSummary += `命令: ${toolInput.command.substring(0, 80)}  `;
+                                    if (toolInput.query) paramSummary += `查询: ${toolInput.query.substring(0, 80)}  `;
+                                    if (toolInput.url) paramSummary += `URL: ${toolInput.url.substring(0, 80)}  `;
+                                    if (toolInput.prompt) paramSummary += `提示: ${toolInput.prompt.substring(0, 60)}  `;
+
+                                    const detailId = 'tool-detail-' + toolId + '-' + Date.now();
                                     let toolInfo = `\n<div class="tool-call">🔧 <strong>调用工具:</strong> ${escapeHtml(toolName)}`;
+                                    if (paramSummary) {
+                                        toolInfo += `<div class="tool-call-params">${escapeHtml(paramSummary.trim())}</div>`;
+                                    }
                                     if (Object.keys(toolInput).length > 0) {
-                                        toolInfo += `\n<span style="color: var(--text-secondary); font-size: 11px;">${escapeHtml(JSON.stringify(toolInput, null, 2).substring(0, 200))}</span>`;
+                                        toolInfo += `<span class="tool-details-toggle" onclick="document.getElementById('${detailId}').classList.toggle('expanded');this.textContent=this.textContent==='▶ 详情'?'▼ 收起':'▶ 详情'">▶ 详情</span>`;
+                                        toolInfo += `<div id="${detailId}" class="tool-details-full">${escapeHtml(JSON.stringify(toolInput, null, 2))}</div>`;
                                     }
                                     toolInfo += `</div>`;
                                     fullContent += toolInfo;
@@ -3815,9 +3925,41 @@ ${task}`;
                                 } else if (data.type === 'tool_result') {
                                     // 显示工具结果
                                     const resultContent = data.content || '';
+                                    const summary = data.summary || {};
+                                    const toolUseId = (data.tool_use_id || '').substring(0, 8);
+
+                                    // 构建摘要文本
+                                    let summaryText = '';
+                                    if (summary.numFiles !== undefined) summaryText += `${summary.numFiles} 个文件  `;
+                                    if (summary.numLines !== undefined) summaryText += `${summary.numLines} 行  `;
+                                    if (summary.resultSize !== undefined) summaryText += `大小: ${summary.resultSize}  `;
+
+                                    const detailId = 'result-detail-' + toolUseId + '-' + Date.now();
+                                    let resultHtml = `\n<div class="tool-result">✅ <strong>工具结果</strong>`;
+                                    if (summaryText) {
+                                        resultHtml += `<div class="tool-result-summary">${escapeHtml(summaryText.trim())}</div>`;
+                                    }
                                     if (resultContent) {
-                                        const shortResult = resultContent.length > 300 ? resultContent.substring(0, 300) + '...' : resultContent;
-                                        fullContent += `\n<div class="process-info">✅ 工具结果: ${escapeHtml(shortResult)}</div>`;
+                                        const preview = resultContent.length > 120 ? resultContent.substring(0, 120) + '...' : resultContent;
+                                        if (!summaryText) {
+                                            resultHtml += `<div class="tool-result-summary">${escapeHtml(preview)}</div>`;
+                                        }
+                                        resultHtml += `<span class="tool-details-toggle" onclick="document.getElementById('${detailId}').classList.toggle('expanded');this.textContent=this.textContent==='▶ 详情'?'▼ 收起':'▶ 详情'">▶ 详情</span>`;
+                                        resultHtml += `<div id="${detailId}" class="tool-details-full">${escapeHtml(resultContent)}</div>`;
+                                    }
+                                    resultHtml += `</div>`;
+                                    fullContent += resultHtml;
+                                    contentDiv.innerHTML = formatContent(fullContent);
+                                    scrollToBottom();
+                                } else if (data.type === 'result') {
+                                    // 显示费用和耗时
+                                    const cost = data.cost != null ? `$${data.cost.toFixed(4)}` : '';
+                                    const duration = data.duration != null ? `${(data.duration / 1000).toFixed(1)}s` : '';
+                                    let parts = [];
+                                    if (cost) parts.push(`费用: ${cost}`);
+                                    if (duration) parts.push(`耗时: ${duration}`);
+                                    if (parts.length > 0) {
+                                        fullContent += `\n<div class="result-info">📊 ${parts.join('  |  ')}</div>`;
                                         contentDiv.innerHTML = formatContent(fullContent);
                                         scrollToBottom();
                                     }
