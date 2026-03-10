@@ -13,7 +13,7 @@ FastAPI 后端 (main.py)
 ```
 
 - **后端**：Python FastAPI + Uvicorn，通过 `asyncio.create_subprocess_exec` 调用本地 `claude` CLI，以 SSE (Server-Sent Events) 流式返回结果
-- **前端**：单页 HTML（Jinja2 模板），纯原生 JS/CSS，无框架依赖
+- **前端**：Jinja2 模板 + React 组件（渐进式迁移），导航栏和头部已组件化（React + Vite + TypeScript），使用 Lucide Icons；其余页面仍为原生 JS/CSS
 - **桌面端**：PyInstaller 打包为 macOS `.app` / `.dmg`
 
 ## 功能概览
@@ -44,8 +44,13 @@ FastAPI 后端 (main.py)
 - 按会话切换模型，设置默认模型
 - 模型配置持久化在 `models.json`，启动时通过环境变量 `ANTHROPIC_API_KEY` / `ANTHROPIC_BASE_URL` 注入子进程
 
+### PPT 模板管理
+- 支持上传自定义 PPT 模板（`.pptx`）
+- 在线搜索并下载公共模板
+- 从 URL 抓取模板文件
+
 ### Agent 角色
-- 内置 4 种 Agent：默认助手、代码审查、测试编写、架构设计
+- 内置多种 Agent：默认助手、PPT 助手、语雀助手、编码助手
 - 通过下拉菜单随时切换
 
 ### 权限控制
@@ -68,7 +73,7 @@ FastAPI 后端 (main.py)
 ## 前置依赖
 
 - **Python 3.9+**
-- **Node.js**（用于安装 Claude CLI）
+- **Node.js 18+**（用于安装 Claude CLI 及构建前端）
 - **Claude Code CLI**：
   ```bash
   npm install -g @anthropic-ai/claude-code
@@ -92,6 +97,10 @@ FastAPI 后端 (main.py)
 ### 手动启动
 
 ```bash
+# 构建前端
+cd frontend && npm install && npm run build && cd ..
+
+# 启动后端
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -139,23 +148,31 @@ tail -f server.log
 ```
 main.py              # 后端核心：API 路由、会话管理、CLI 调用
 app.py               # 桌面应用入口（PyInstaller 打包用）
-ppt_generator.py     # PPT 生成模块（大纲解析、幻灯片生成、文件导出）
-templates/chat.html  # 前端单页应用（HTML + CSS + JS）
+ppt_generator.py     # PPT 生成模块（大纲解析、幻灯片生成、模板管理）
+templates/chat.html  # 前端页面（Jinja2 模板 + vanilla JS）
+frontend/            # React + Vite + TypeScript 前端项目
+  src/bridge.ts      #   React ↔ vanilla JS 双向通信桥梁
+  src/components/    #   React 组件（LeftNav, Header）
+  src/hooks/         #   自定义 Hooks（useBridge）
+  vite.config.ts     #   Vite 构建配置（IIFE library 模式）
+static/              # 前端构建产物（clawweb-ui.js）
 models.json          # 模型配置（ID、API Key、URL、等级）
 ClaudeWebChat.spec   # PyInstaller 打包配置
 requirements.txt     # Python 依赖
-start.sh             # 首次启动脚本
-restart.sh           # 前台重启脚本
-restart-bg.sh        # 后台重启脚本
+start.sh             # 首次启动脚本（含前端构建）
+restart.sh           # 前台重启脚本（含前端构建）
+restart-bg.sh        # 后台重启脚本（含前端构建）
 build_dmg.sh         # macOS 打包脚本
 data/sessions/       # 会话配置持久化目录
+data/ppt_templates/  # PPT 模板存储目录
 temp_images/         # 上传图片临时存储
 ```
 
 ## 技术栈
 
 - **后端**：Python 3.9 + FastAPI + Uvicorn + asyncio subprocess
-- **前端**：HTML5 + CSS3 + JavaScript (ES6+)，无框架
+- **前端**：React 19 + TypeScript + Vite（组件化部分）+ 原生 JS/CSS（渐进迁移中）
+- **图标**：Lucide Icons（SVG，替代 emoji）
 - **通信**：SSE（对话流式传输）+ WebSocket（日志推送）+ REST（配置管理）
 - **PPT 生成**：python-pptx + python-docx + PyPDF2
 - **桌面打包**：PyInstaller
