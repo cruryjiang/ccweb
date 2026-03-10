@@ -21,6 +21,20 @@ fi
 
 echo "✅ 检测到 Claude CLI"
 
+# 检查 Node.js
+if ! command -v node &> /dev/null; then
+    echo "❌ 请先安装 Node.js (用于构建前端)"
+    exit 1
+fi
+
+# 构建前端
+echo "📦 构建前端..."
+(cd frontend && npm install --silent && npm run build) || {
+    echo "❌ 前端构建失败"
+    exit 1
+}
+echo "✅ 前端构建完成"
+
 # 检查虚拟环境
 if [ -d "venv" ]; then
     echo "📦 激活虚拟环境..."

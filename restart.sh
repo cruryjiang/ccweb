@@ -43,6 +43,14 @@ if ! command -v claude &> /dev/null; then
     exit 1
 fi
 
+# 构建前端
+echo "📦 构建前端..."
+(cd frontend && npm install --silent && npm run build) || {
+    echo "❌ 前端构建失败"
+    exit 1
+}
+echo "✅ 前端构建完成"
+
 echo "🚀 启动服务..."
 echo "🌐 服务将在 http://localhost:8000 启动"
 echo ""

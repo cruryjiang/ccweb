@@ -17,6 +17,7 @@ from collections import deque
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
@@ -26,7 +27,9 @@ from ppt_generator import (
     PPTSession, PPTOutline, SlideContent,
     get_or_create_ppt_session, delete_ppt_session,
     create_ppt_file, parse_outline_from_ai_response,
-    parse_slide_content_from_ai_response, PPT_STORAGE_DIR
+    parse_slide_content_from_ai_response, PPT_STORAGE_DIR,
+    PPT_TEMPLATE_DIR, list_templates, save_template, delete_template,
+    get_template_path, fetch_url_content, search_and_download_template
 )
 
 # 配置
@@ -306,9 +309,9 @@ AVAILABLE_TOOLS = [
 # 内置 Agents
 BUILTIN_AGENTS = [
     {"id": "default", "name": "默认助手", "description": "通用助手，适合大多数任务"},
-    {"id": "code-reviewer", "name": "代码审查", "description": "专注代码审查和质量分析"},
-    {"id": "test-writer", "name": "测试编写", "description": "帮助编写单元测试和测试用例"},
-    {"id": "architect", "name": "架构设计", "description": "专注系统架构和设计模式"},
+    {"id": "ppt", "name": "PPT助手", "description": "专注PPT演示文稿的制作和优化"},
+    {"id": "yuque", "name": "语雀助手", "description": "语雀文档的创建、编辑和管理"},
+    {"id": "coder", "name": "编码助手", "description": "专注代码编写、调试和优化"},
 ]
 
 # 自定义 Agents 存储
@@ -346,6 +349,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Claude Web Chat (本地)", lifespan=lifespan)
 templates = Jinja2Templates(directory=os.path.join(APP_DIR, "templates"))
+
+# 静态文件服务（React 构建产物）
+_static_dir = os.path.join(APP_DIR, "static")
+os.makedirs(_static_dir, exist_ok=True)
+app.mount("/static", StaticFiles(directory=_static_dir), name="static")
 
 
 def get_or_create_session(session_id: str) -> list:
@@ -566,10 +574,6 @@ async def stream_claude_response(
             cmd_args.extend(["--permission-mode", "acceptEdits"])
         # safe 模式不需要额外参数，使用默认行为
 
-        # 添加工作目录参数
-        if cwd and cwd != DEFAULT_CWD:
-            cmd_args.extend(["--cwd", cwd])
-
         cmd_str = " ".join(shlex.quote(str(arg)) for arg in cmd_args)
         add_log_entry(session_id, "command", f"执行命令: {cmd_str}")
 
@@ -663,7 +667,9 @@ async def stream_claude_response(
                                                         'content': content,
                                                         'tool_use_id': item.get('tool_use_id', ''),
                                                     }
-                                                    if tool_use_result:
+                                                    if item.get('is_error'):
+                                                        result_data['is_error'] = True
+                                                    if tool_use_result and isinstance(tool_use_result, dict):
                                                         result_data['summary'] = {
                                                             k: v for k, v in tool_use_result.items()
                                                             if k != 'content'
@@ -1450,6 +1456,140 @@ class PPTMessageRequest(BaseModel):
     message: str
 
 
+# ===================== PPT 模板管理 API =====================
+
+@app.get("/api/ppt/templates")
+async def get_ppt_templates():
+    """列出所有 PPT 模板"""
+    return {"status": "ok", "templates": list_templates()}
+
+
+@app.post("/api/ppt/templates/upload")
+async def upload_ppt_template(file: UploadFile = File(...)):
+    """上传 PPT 模板"""
+    if not file.filename.lower().endswith('.pptx'):
+        return {"status": "error", "message": "模板必须是 .pptx 格式"}
+
+    try:
+        content = await file.read()
+        result = save_template(file.filename, content)
+        return {"status": "ok", "message": f"模板上传成功: {result['name']}", "template": result}
+    except Exception as e:
+        return {"status": "error", "message": f"上传失败: {str(e)}"}
+
+
+@app.delete("/api/ppt/templates/{filename}")
+async def delete_ppt_template(filename: str):
+    """删除 PPT 模板"""
+    if delete_template(filename):
+        return {"status": "ok", "message": "模板已删除"}
+    return {"status": "error", "message": "模板不存在"}
+
+
+@app.post("/api/ppt/templates/fetch-online")
+async def fetch_online_template(request: Request):
+    """从互联网搜索并下载免费 PPTX 模板"""
+    try:
+        body = await request.json()
+        description = body.get("description", "").strip()
+        if not description:
+            return {"status": "error", "message": "请输入模板描述"}
+        result = await search_and_download_template(description)
+        return result
+    except Exception as e:
+        return {"status": "error", "message": f"获取模板失败: {str(e)}"}
+
+
+# ===================== PPT 一键生成 API =====================
+
+@app.post("/api/ppt/generate")
+async def generate_ppt(request: Request):
+    """
+    一键生成 PPT
+    支持：模板选择 + 参考文档 URL + 生成提示词
+    """
+    data = await request.json()
+    session_id = data.get("session_id")
+    prompt_text = data.get("prompt", "")
+    template_filename = data.get("template", "")
+    reference_urls = data.get("reference_urls", [])
+    model = data.get("model")
+
+    if not session_id:
+        return {"status": "error", "message": "session_id is required"}
+    if not prompt_text:
+        return {"status": "error", "message": "请输入生成提示词"}
+
+    ppt_session = get_or_create_ppt_session(session_id)
+
+    async def generate():
+        # Step 1: 获取参考文档内容
+        reference_text = ""
+        if reference_urls:
+            yield f"data: {json.dumps({'type': 'status', 'step': 'fetching_refs', 'message': '正在获取参考文档...'}, ensure_ascii=False)}\n\n"
+            ref_parts = []
+            for url in reference_urls:
+                url = url.strip()
+                if url:
+                    content = await fetch_url_content(url)
+                    ref_parts.append(f"--- 参考文档: {url} ---\n{content}")
+            reference_text = "\n\n".join(ref_parts)
+
+        # Step 2: 读取上传的源文档（如有）
+        source_text = ""
+        if ppt_session.source_file and os.path.exists(ppt_session.source_file):
+            try:
+                source_text = ppt_generator.extract_text_from_document(ppt_session.source_file)
+            except Exception as e:
+                yield f"data: {json.dumps({'type': 'warning', 'message': f'读取源文档失败: {str(e)}'}, ensure_ascii=False)}\n\n"
+
+        # Step 3: 生成大纲
+        yield f"data: {json.dumps({'type': 'status', 'step': 'generating_outline', 'message': '正在生成 PPT 大纲...'}, ensure_ascii=False)}\n\n"
+
+        outline_prompt = ppt_generator.generate_outline_prompt(source_text, prompt_text, reference_text)
+
+        response_text = ""
+        async for chunk in stream_claude_response(outline_prompt, session_id, model=model):
+            try:
+                chunk_data = json.loads(chunk[6:])
+                if chunk_data.get("type") == "content":
+                    text_part = chunk_data.get("text", "")
+                    response_text += text_part
+                    yield f"data: {json.dumps({'type': 'content', 'text': text_part}, ensure_ascii=False)}\n\n"
+                elif chunk_data.get("type") == "done":
+                    break
+            except:
+                pass
+
+        # Step 4: 解析大纲
+        if not response_text.strip():
+            yield f"data: {json.dumps({'type': 'error', 'message': 'AI 未返回任何内容，请重试'}, ensure_ascii=False)}\n\n"
+            return
+
+        outline = parse_outline_from_ai_response(response_text)
+        if not outline:
+            # 提供更有用的错误信息
+            preview = response_text[:200].replace('\n', ' ')
+            print(f"[PPT] 大纲解析失败，响应长度={len(response_text)}，前200字: {preview}")
+            yield f"data: {json.dumps({'type': 'error', 'message': f'无法解析 AI 返回的大纲（响应长度 {len(response_text)} 字），请重试'}, ensure_ascii=False)}\n\n"
+            return
+
+        ppt_session.outline = outline
+        ppt_session.status = "outline_generated"
+        # 记住用户选择的模板，供后续 finalize 使用
+        ppt_session.template_file = template_filename or ""
+
+        yield f"data: {json.dumps({'type': 'outline_ready', 'outline': outline.to_dict(), 'session_id': session_id, 'message': f'大纲已生成，共 {len(outline.slides)} 页，请编辑后点击「生成 PPT」'}, ensure_ascii=False)}\n\n"
+
+        yield f"data: {json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    )
+
+
 @app.post("/api/ppt/upload")
 async def upload_ppt_document(file: UploadFile = File(...), session_id: str = None):
     """上传 PPT 制作的源文档"""
@@ -1546,13 +1686,16 @@ async def generate_ppt_outline(request: Request):
             result = {
                 'type': 'outline_ready',
                 'outline': outline.to_dict(),
-                'message': f'大纲已生成，共 {len(outline.slides)} 页'
+                'session_id': session_id,
+                'message': f'大纲已生成，共 {len(outline.slides)} 页，请编辑后点击「生成 PPT」'
             }
             yield f"data: {json.dumps(result, ensure_ascii=False)}\n\n"
         else:
+            preview = response_text[:200].replace('\n', ' ')
+            print(f"[PPT] 大纲解析失败，响应长度={len(response_text)}，前200字: {preview}")
             result = {
                 'type': 'error',
-                'message': '无法解析 AI 返回的大纲格式，请重试'
+                'message': f'无法解析 AI 返回的大纲格式（响应长度 {len(response_text)} 字），请重试'
             }
             yield f"data: {json.dumps(result, ensure_ascii=False)}\n\n"
 
@@ -1748,7 +1891,9 @@ async def finalize_ppt(request: Request):
         output_filename = f"ppt_{session_id}_{int(time.time())}.pptx"
         output_path = os.path.join(PPT_STORAGE_DIR, output_filename)
 
-        create_ppt_file(ppt_session.outline, output_path)
+        # 使用会话中记录的模板
+        template_path = get_template_path(ppt_session.template_file) if ppt_session.template_file else None
+        create_ppt_file(ppt_session.outline, output_path, template_path=template_path)
         ppt_session.output_file = output_path
         ppt_session.status = "completed"
 

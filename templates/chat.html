@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+    <script>
+        (function(){var t=localStorage.getItem('clawweb-theme');if(t)document.documentElement.setAttribute('data-theme',t);})();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Claude Web Chat - 本地版</title>
@@ -11,7 +14,7 @@
             box-sizing: border-box;
         }
 
-        :root {
+        :root, [data-theme="dark"] {
             --bg-primary: #1a1a2e;
             --bg-secondary: #16213e;
             --bg-tertiary: #0f3460;
@@ -22,6 +25,113 @@
             --user-msg-bg: #e94560;
             --assistant-msg-bg: #2d2d44;
             --border: #2a2a3e;
+            --bg-card: #2a2a3e;
+            --bg-input: #1e1e30;
+            --bg-hover: #3a3a50;
+            --bg-code: #1e1e2e;
+            --shadow: rgba(0,0,0,0.4);
+            --scrollbar-thumb: #3a3a50;
+            --preview-bg: linear-gradient(135deg, #1a1a2e, #16213e);
+            --preview-text: #e0e0e0;
+            --preview-title-text: #ffffff;
+            --preview-sub-text: #a0a0c0;
+            --preview-bullet-text: #c8c8e0;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f0f2f5;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #e4e6ea;
+            --text-primary: #1c1e21;
+            --text-secondary: #606770;
+            --accent: #e94560;
+            --accent-hover: #d63851;
+            --user-msg-bg: #e94560;
+            --assistant-msg-bg: #e9ecf0;
+            --border: #ced0d4;
+            --bg-card: #ffffff;
+            --bg-input: #f5f6f7;
+            --bg-hover: #e4e6ea;
+            --bg-code: #f5f6f7;
+            --shadow: rgba(0,0,0,0.1);
+            --scrollbar-thumb: #c0c0c0;
+            --preview-bg: linear-gradient(135deg, #e8eaf0, #dce0e8);
+            --preview-text: #3a3a4a;
+            --preview-title-text: #1a1a2e;
+            --preview-sub-text: #606080;
+            --preview-bullet-text: #4a4a60;
+        }
+
+        [data-theme="gray"] {
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #252526;
+            --bg-tertiary: #333333;
+            --text-primary: #d4d4d4;
+            --text-secondary: #808080;
+            --accent: #569cd6;
+            --accent-hover: #6eb3f7;
+            --user-msg-bg: #264f78;
+            --assistant-msg-bg: #2d2d2d;
+            --border: #404040;
+            --bg-card: #2d2d2d;
+            --bg-input: #1e1e1e;
+            --bg-hover: #3c3c3c;
+            --bg-code: #1e1e1e;
+            --shadow: rgba(0,0,0,0.5);
+            --scrollbar-thumb: #555;
+            --preview-bg: linear-gradient(135deg, #1e1e1e, #2d2d2d);
+            --preview-text: #d4d4d4;
+            --preview-title-text: #ffffff;
+            --preview-sub-text: #999;
+            --preview-bullet-text: #bbb;
+        }
+
+        [data-theme="ocean"] {
+            --bg-primary: #0a192f;
+            --bg-secondary: #112240;
+            --bg-tertiary: #1d3461;
+            --text-primary: #ccd6f6;
+            --text-secondary: #8892b0;
+            --accent: #64ffda;
+            --accent-hover: #4cd6b6;
+            --user-msg-bg: #1d4e6e;
+            --assistant-msg-bg: #1a2744;
+            --border: #233554;
+            --bg-card: #1a2744;
+            --bg-input: #0a192f;
+            --bg-hover: #233554;
+            --bg-code: #0a192f;
+            --shadow: rgba(0,0,0,0.5);
+            --scrollbar-thumb: #233554;
+            --preview-bg: linear-gradient(135deg, #0a192f, #112240);
+            --preview-text: #ccd6f6;
+            --preview-title-text: #e6f1ff;
+            --preview-sub-text: #8892b0;
+            --preview-bullet-text: #a8b2d1;
+        }
+
+        [data-theme="warm"] {
+            --bg-primary: #1a1512;
+            --bg-secondary: #2a231e;
+            --bg-tertiary: #3a312a;
+            --text-primary: #e8dcc8;
+            --text-secondary: #a09080;
+            --accent: #e07a4f;
+            --accent-hover: #f09060;
+            --user-msg-bg: #c06030;
+            --assistant-msg-bg: #2d2620;
+            --border: #3a3028;
+            --bg-card: #2d2620;
+            --bg-input: #1a1512;
+            --bg-hover: #3a312a;
+            --bg-code: #1a1512;
+            --shadow: rgba(0,0,0,0.5);
+            --scrollbar-thumb: #4a4038;
+            --preview-bg: linear-gradient(135deg, #1a1512, #2a231e);
+            --preview-text: #e8dcc8;
+            --preview-title-text: #fff0e0;
+            --preview-sub-text: #b0a090;
+            --preview-bullet-text: #d0c0a8;
         }
 
         body {
@@ -30,18 +140,169 @@
             color: var(--text-primary);
             height: 100vh;
             display: flex;
+            flex-direction: row;
+            overflow: hidden;
+        }
+
+        /* ===================== 左侧导航栏 ===================== */
+        .left-nav {
+            width: 64px;
+            min-width: 64px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 0;
+            z-index: 100;
+        }
+
+        .nav-item {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 20px;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            margin-bottom: 4px;
+            position: relative;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .nav-item .nav-tooltip {
+            position: absolute;
+            left: 60px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 200;
+        }
+
+        .nav-item:hover .nav-tooltip {
+            opacity: 1;
+        }
+
+        .nav-divider {
+            width: 32px;
+            height: 1px;
+            background: var(--border);
+            margin: 8px 0;
+        }
+
+        .nav-spacer {
+            flex: 1;
+        }
+
+        /* ===================== 主布局区 ===================== */
+        .main-layout {
+            flex: 1;
+            display: flex;
             flex-direction: column;
             overflow: hidden;
+            min-width: 0;
+        }
+
+        /* ===================== 右侧历史面板（常驻） ===================== */
+        .right-history-panel {
+            width: 0;
+            min-width: 0;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease, min-width 0.3s ease;
+            overflow: hidden;
+        }
+
+        .right-history-panel.active {
+            width: 280px;
+            min-width: 280px;
+        }
+
+        .right-history-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-tertiary);
+            flex-shrink: 0;
+        }
+
+        .right-history-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .right-history-panel .history-list {
+            padding: 12px;
+        }
+
+        /* ===================== 页面视图区（各助手页面） ===================== */
+        .page-view {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .page-view.active {
+            display: flex;
+        }
+
+        /* PPT 页面视图 */
+        .ppt-page {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .ppt-page-inner {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .ppt-page-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ppt-page-title::before {
+            content: '📊';
         }
 
         /* 头部 */
         .header {
             background: var(--bg-secondary);
-            padding: 16px 24px;
+            padding: 12px 20px;
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-shrink: 0;
         }
 
         .header h1 {
@@ -590,69 +851,6 @@
         }
 
         /* 暂停控制栏 */
-        /* 历史对话侧边栏 - 默认隐藏，点击弹出 */
-        .history-panel {
-            position: fixed;
-            left: -280px;
-            top: 0;
-            width: 280px;
-            height: 100vh;
-            background: var(--bg-secondary);
-            border-right: 1px solid var(--border);
-            z-index: 1001;
-            display: flex;
-            flex-direction: column;
-            transition: left 0.3s ease;
-        }
-
-        .history-panel.active {
-            left: 0;
-        }
-
-        .history-header {
-            background: var(--bg-tertiary);
-            padding: 16px 16px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .history-header h3 {
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        /* 历史按钮标签 */
-        .history-toggle {
-            position: fixed;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-left: none;
-            border-radius: 0 8px 8px 0;
-            padding: 12px 8px;
-            cursor: pointer;
-            z-index: 1000;
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            font-size: 13px;
-            color: var(--text-secondary);
-            transition: all 0.3s ease;
-        }
-
-        .history-toggle:hover {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            padding-left: 10px;
-        }
-
-        .history-toggle.active {
-            left: 280px;
-        }
-
         .history-list {
             flex: 1;
             overflow-y: auto;
@@ -979,6 +1177,15 @@
             color: #6495ed;
         }
 
+        .tool-result.tool-error {
+            background: rgba(220, 53, 69, 0.08);
+            border-left-color: #dc3545;
+        }
+
+        .tool-result.tool-error strong {
+            color: #dc3545;
+        }
+
         .tool-result-summary {
             margin-top: 4px;
             font-size: 11px;
@@ -1008,7 +1215,7 @@
             width: 380px;
             max-height: calc(100vh - 100px);
             z-index: 1000;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 40px var(--shadow);
             display: none;
             flex-direction: column;
         }
@@ -1044,6 +1251,54 @@
             margin-bottom: 12px;
         }
 
+        .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        .theme-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 6px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .theme-card:hover {
+            border-color: var(--border);
+        }
+
+        .theme-card.active {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        .theme-card-preview {
+            width: 100%;
+            aspect-ratio: 16/10;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(128,128,128,0.2);
+        }
+
+        .theme-card-accent {
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 16px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
         .settings-section {
             margin-bottom: 20px;
         }
@@ -1062,7 +1317,7 @@
             align-items: center;
             padding: 10px 12px;
             margin-bottom: 8px;
-            background: #3c3c3c;
+            background: var(--bg-card);
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s;
@@ -1070,12 +1325,12 @@
         }
 
         .model-item:hover {
-            background: #4a4a4a;
+            background: var(--bg-hover);
         }
 
         .model-item.selected {
-            border-color: #4a9eff;
-            background: #3d4a5c;
+            border-color: var(--accent);
+            background: var(--bg-tertiary);
         }
 
         .model-item input[type="radio"] {
@@ -1096,7 +1351,7 @@
         }
 
         .model-item.selected .model-radio {
-            border-color: #4a9eff;
+            border-color: var(--accent);
         }
 
         .model-item.selected .model-radio::after {
@@ -1104,7 +1359,7 @@
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: #4a9eff;
+            background: var(--accent);
         }
 
         .model-info {
@@ -1118,14 +1373,14 @@
 
         .model-desc {
             font-size: 11px;
-            color: #999;
+            color: var(--text-secondary);
         }
 
         .model-tier {
             font-size: 10px;
             padding: 2px 6px;
             border-radius: 4px;
-            background: #555;
+            background: var(--bg-hover);
             margin-left: 8px;
         }
 
@@ -1167,7 +1422,7 @@
             align-items: center;
             padding: 8px 12px;
             margin-bottom: 6px;
-            background: #3c3c3c;
+            background: var(--bg-card);
             border-radius: 6px;
             font-size: 13px;
         }
@@ -1197,7 +1452,7 @@
             font-size: 10px;
             padding: 1px 4px;
             border-radius: 3px;
-            background: #4a9eff;
+            background: var(--accent);
             color: white;
             margin-left: 6px;
         }
@@ -1211,7 +1466,7 @@
         .model-manage-actions button {
             background: transparent;
             border: none;
-            color: #888;
+            color: var(--text-secondary);
             cursor: pointer;
             padding: 4px 6px;
             border-radius: 4px;
@@ -1219,8 +1474,8 @@
         }
 
         .model-manage-actions button:hover {
-            background: #555;
-            color: #fff;
+            background: var(--bg-hover);
+            color: var(--text-primary);
         }
 
         .model-manage-actions button.delete:hover {
@@ -1230,7 +1485,7 @@
         .model-form {
             margin-top: 12px;
             padding: 12px;
-            background: #3c3c3c;
+            background: var(--bg-card);
             border-radius: 8px;
         }
 
@@ -1241,7 +1496,7 @@
         .model-form label {
             display: block;
             font-size: 12px;
-            color: #aaa;
+            color: var(--text-secondary);
             margin-bottom: 4px;
         }
 
@@ -1249,10 +1504,10 @@
         .model-form select {
             width: 100%;
             padding: 8px 10px;
-            background: #2a2a2a;
-            border: 1px solid #555;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
             border-radius: 4px;
-            color: #fff;
+            color: var(--text-primary);
             font-size: 13px;
         }
 
@@ -1271,11 +1526,11 @@
         }
 
         .preset-btn.secondary {
-            background: #555;
+            background: var(--bg-hover);
         }
 
         .preset-btn.secondary:hover {
-            background: #666;
+            background: var(--bg-tertiary);
         }
 
         .tool-presets {
@@ -1899,63 +2154,6 @@
         }
 
         /* ===================== PPT 制作功能样式 ===================== */
-        .ppt-panel {
-            position: fixed;
-            right: -420px;
-            top: 0;
-            width: 420px;
-            height: 100vh;
-            background: var(--bg-secondary);
-            border-left: 1px solid var(--border);
-            z-index: 1000;
-            transition: right 0.3s ease;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .ppt-panel.active {
-            right: 0;
-        }
-
-        .ppt-header {
-            padding: 16px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--bg-tertiary);
-        }
-
-        .ppt-header h2 {
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .ppt-header h2::before {
-            content: '📊';
-        }
-
-        .ppt-close {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 20px;
-            cursor: pointer;
-            padding: 4px;
-        }
-
-        .ppt-close:hover {
-            color: var(--text-primary);
-        }
-
-        .ppt-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px;
-        }
-
         .ppt-upload-area {
             border: 2px dashed var(--border);
             border-radius: 8px;
@@ -2000,6 +2198,76 @@
 
         .ppt-section {
             margin-bottom: 20px;
+        }
+
+        .ppt-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .ppt-generate-btn {
+            background: var(--accent);
+            border: none;
+            color: white;
+            padding: 12px 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .ppt-generate-btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .ppt-generate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .ppt-upload-label {
+            display: inline-block;
+            padding: 6px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .ppt-upload-label:hover {
+            background: var(--border);
+            color: var(--text-primary);
+        }
+
+        .ppt-outline-preview {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .ppt-outline-preview h4 {
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .ppt-download-area {
+            margin-top: 16px;
+            text-align: center;
+            padding: 20px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
         }
 
         .ppt-section-title {
@@ -2130,6 +2398,364 @@
             min-width: 28px;
         }
 
+        /* ---- 分页编辑器 ---- */
+        .ppt-slide-editor {
+            margin-top: 16px;
+        }
+        .ppt-slide-editor-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .ppt-slide-editor-header h4 {
+            margin: 0;
+            font-size: 14px;
+        }
+        .ppt-slide-count {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .ppt-slide-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 480px;
+            overflow-y: auto;
+        }
+        .ppt-slide-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .ppt-slide-card:hover {
+            border-color: var(--accent);
+        }
+        .ppt-slide-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .ppt-slide-card-num {
+            font-size: 11px;
+            color: var(--text-secondary);
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            min-width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .ppt-slide-card-title {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .ppt-slide-card-bullets {
+            font-size: 11px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 160px;
+        }
+        .ppt-slide-card-toggle {
+            color: var(--text-secondary);
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+        .ppt-slide-card.expanded .ppt-slide-card-toggle {
+            transform: rotate(90deg);
+        }
+        /* PPT 幻灯片预览 */
+        .ppt-slide-preview {
+            aspect-ratio: 16/9;
+            background: var(--preview-bg);
+            border-radius: 4px;
+            padding: 8%;
+            margin: 0 12px 8px;
+            cursor: pointer;
+            font-size: 10px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            color: var(--preview-text);
+            transition: box-shadow 0.2s;
+        }
+        .ppt-slide-preview:hover {
+            box-shadow: 0 0 0 2px var(--accent);
+        }
+        .ppt-slide-preview .preview-title {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            line-height: 1.3;
+            color: var(--preview-title-text);
+        }
+        .ppt-slide-preview .preview-subtitle {
+            font-size: 10px;
+            color: var(--preview-sub-text);
+            margin-bottom: 8px;
+        }
+        .ppt-slide-preview .preview-bullets {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex: 1;
+            overflow: hidden;
+        }
+        .ppt-slide-preview .preview-bullets li {
+            font-size: 9px;
+            line-height: 1.5;
+            padding-left: 12px;
+            position: relative;
+            color: var(--preview-bullet-text);
+        }
+        .ppt-slide-preview .preview-bullets li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: var(--accent, #6366f1);
+        }
+        .ppt-slide-preview .preview-page-num {
+            position: absolute;
+            bottom: 4%;
+            right: 5%;
+            font-size: 8px;
+            color: #666;
+        }
+        /* 标题页预览样式 */
+        .ppt-slide-preview[data-layout="title"] {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .ppt-slide-preview[data-layout="title"] .preview-title {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        .ppt-slide-preview[data-layout="title"] .preview-subtitle {
+            font-size: 12px;
+        }
+        /* PPT 预览模态框 */
+        .ppt-preview-modal-content {
+            background: var(--bg-secondary, #2a2a2a);
+            border-radius: 12px;
+            width: 80vw;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+        }
+        .ppt-preview-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border, #444);
+            font-size: 14px;
+            color: var(--text-secondary, #aaa);
+        }
+        .ppt-preview-modal-body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            flex: 1;
+            gap: 12px;
+        }
+        .ppt-preview-modal-slide {
+            aspect-ratio: 16/9;
+            width: 100%;
+            max-width: 760px;
+            background: var(--preview-bg);
+            border-radius: 8px;
+            padding: 8%;
+            display: flex;
+            flex-direction: column;
+            color: var(--preview-text);
+            overflow: hidden;
+            position: relative;
+        }
+        .ppt-preview-modal-slide .preview-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            line-height: 1.3;
+            color: var(--preview-title-text);
+        }
+        .ppt-preview-modal-slide .preview-subtitle {
+            font-size: 16px;
+            color: var(--preview-sub-text);
+            margin-bottom: 16px;
+        }
+        .ppt-preview-modal-slide .preview-bullets {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex: 1;
+        }
+        .ppt-preview-modal-slide .preview-bullets li {
+            font-size: 16px;
+            line-height: 1.8;
+            padding-left: 20px;
+            position: relative;
+            color: var(--preview-bullet-text);
+        }
+        .ppt-preview-modal-slide .preview-bullets li::before {
+            content: '\2022';
+            position: absolute;
+            left: 0;
+            color: var(--accent, #6366f1);
+        }
+        .ppt-preview-modal-slide .preview-page-num {
+            position: absolute;
+            bottom: 4%;
+            right: 5%;
+            font-size: 14px;
+            color: #555;
+        }
+        .ppt-preview-modal-slide[data-layout="title"] {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .ppt-preview-modal-slide[data-layout="title"] .preview-title {
+            font-size: 36px;
+        }
+        .ppt-preview-modal-slide[data-layout="title"] .preview-subtitle {
+            font-size: 20px;
+        }
+        .ppt-preview-nav {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+        .ppt-preview-nav:hover {
+            background: rgba(255,255,255,0.25);
+        }
+        .ppt-preview-nav:disabled {
+            opacity: 0.3;
+            cursor: default;
+        }
+        .ppt-preview-modal-dots {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            padding: 0 16px 16px;
+            flex-wrap: wrap;
+        }
+        .ppt-preview-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .ppt-preview-dot.active {
+            background: var(--accent, #6366f1);
+        }
+        .ppt-slide-card-body {
+            display: none;
+            padding: 0 12px 12px;
+        }
+        .ppt-slide-card.expanded .ppt-slide-card-body {
+            display: block;
+        }
+        .ppt-slide-field {
+            margin-bottom: 8px;
+        }
+        .ppt-slide-field label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 3px;
+        }
+        .ppt-slide-field input,
+        .ppt-slide-field textarea,
+        .ppt-slide-field select {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 6px 8px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-family: inherit;
+        }
+        .ppt-slide-field textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        .ppt-slide-field input:focus,
+        .ppt-slide-field textarea:focus,
+        .ppt-slide-field select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .ppt-slide-card-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .ppt-slide-card-actions button {
+            flex: 1;
+            padding: 6px 0;
+            font-size: 12px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .ppt-slide-card-actions button:hover {
+            background: var(--bg-tertiary);
+        }
+        .ppt-slide-card-actions .btn-enhance {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .ppt-slide-card-actions .btn-enhance:hover {
+            background: rgba(233, 69, 96, 0.1);
+        }
+        .ppt-slide-card-actions .btn-delete {
+            color: #ef4444;
+            border-color: #ef4444;
+        }
+        .ppt-slide-card-actions .btn-delete:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+        .ppt-slide-editor-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .ppt-slide-editor-actions .ppt-btn {
+            flex: 1;
+            margin-top: 0;
+        }
+
         .ppt-editor {
             background: var(--bg-primary);
             border: 1px solid var(--border);
@@ -2239,28 +2865,136 @@
         .ppt-download-link:hover {
             background: rgba(74, 222, 128, 0.2);
         }
+
+        /* PPT 模板网格 */
+        .ppt-template-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .ppt-template-item {
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ppt-template-item:hover {
+            border-color: var(--accent);
+            background: rgba(233, 69, 96, 0.05);
+        }
+
+        .ppt-template-item.selected {
+            border-color: var(--accent);
+            background: rgba(233, 69, 96, 0.1);
+        }
+
+        .ppt-template-preview {
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 4px;
+        }
+
+        .ppt-template-name {
+            font-size: 11px;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .ppt-template-delete {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(239, 68, 68, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 12px;
+            cursor: pointer;
+            display: none;
+            line-height: 1;
+        }
+
+        .ppt-template-item:hover .ppt-template-delete {
+            display: block;
+        }
+
+        .ppt-template-item {
+            position: relative;
+        }
+
+        /* PPT URL 行 */
+        .ppt-url-row {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 4px;
+            align-items: center;
+        }
+
+        .ppt-url-input {
+            flex: 1;
+        }
+
+        .ppt-url-remove {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px;
+        }
+
+        .ppt-url-remove:hover {
+            color: #ef4444;
+        }
+
+        .ppt-url-add {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 12px;
+            background: transparent;
+            border: 1px dashed var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .ppt-url-add:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .ppt-upload-filename {
+            margin-top: 8px;
+            font-size: 13px;
+            color: var(--accent);
+        }
+
+        .ppt-ai-content {
+            max-height: 300px;
+            overflow-y: auto;
+            background: var(--bg-primary);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            white-space: pre-wrap;
+        }
     </style>
 </head>
 <body>
     <!-- 遮罩层 -->
     <div class="overlay" id="overlay" onclick="closeAllPanels()"></div>
-
-    <!-- 历史对话切换按钮 -->
-    <div class="history-toggle" id="historyToggle" onclick="toggleHistoryPanel()">📜 历史对话</div>
-
-    <!-- 历史对话侧边栏 -->
-    <div class="history-panel" id="historyPanel">
-        <div class="history-header">
-            <h3>📜 对话历史</h3>
-            <button class="header-btn" onclick="toggleHistoryPanel()">✕</button>
-        </div>
-        <div class="history-actions" style="padding: 8px 12px; border-bottom: 1px solid var(--border);">
-            <button class="btn" onclick="clearChat()" style="width: 100%;">➕ 新对话</button>
-        </div>
-        <div class="history-list" id="historyList">
-            <div class="history-empty">暂无历史对话</div>
-        </div>
-    </div>
 
     <!-- 日志面板 -->
     <div class="log-panel" id="logPanel">
@@ -2281,7 +3015,42 @@
         </div>
         <div class="settings-content">
             <div class="settings-section">
-                <h3>🤖 模型管理</h3>
+                <h3>&#127912; 主题</h3>
+                <div class="theme-grid" id="themeGrid">
+                    <div class="theme-card active" data-theme="dark" onclick="setTheme('dark')">
+                        <div class="theme-card-preview" style="background:linear-gradient(135deg,#1a1a2e,#16213e);">
+                            <span class="theme-card-accent" style="background:#e94560;"></span>
+                        </div>
+                        <span>深邃暗色</span>
+                    </div>
+                    <div class="theme-card" data-theme="light" onclick="setTheme('light')">
+                        <div class="theme-card-preview" style="background:linear-gradient(135deg,#f0f2f5,#ffffff);">
+                            <span class="theme-card-accent" style="background:#e94560;"></span>
+                        </div>
+                        <span>明亮浅色</span>
+                    </div>
+                    <div class="theme-card" data-theme="gray" onclick="setTheme('gray')">
+                        <div class="theme-card-preview" style="background:linear-gradient(135deg,#1e1e1e,#252526);">
+                            <span class="theme-card-accent" style="background:#569cd6;"></span>
+                        </div>
+                        <span>VS Code</span>
+                    </div>
+                    <div class="theme-card" data-theme="ocean" onclick="setTheme('ocean')">
+                        <div class="theme-card-preview" style="background:linear-gradient(135deg,#0a192f,#112240);">
+                            <span class="theme-card-accent" style="background:#64ffda;"></span>
+                        </div>
+                        <span>海洋蓝</span>
+                    </div>
+                    <div class="theme-card" data-theme="warm" onclick="setTheme('warm')">
+                        <div class="theme-card-preview" style="background:linear-gradient(135deg,#1a1512,#2a231e);">
+                            <span class="theme-card-accent" style="background:#e07a4f;"></span>
+                        </div>
+                        <span>暖色调</span>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h3>&#129302; 模型管理</h3>
                 <div class="model-management">
                     <div class="model-management-list" id="modelManageList"></div>
                     <div class="model-management-footer">
@@ -2341,6 +3110,8 @@
         </div>
     </div>
 
+    <!-- 旧 PPT 面板（隐藏，保留 ID 兼容） -->
+
     <!-- 目录选择面板 -->
     <div class="cwd-panel" id="cwdPanel">
         <div class="cwd-panel-header">
@@ -2357,48 +3128,28 @@
         </div>
     </div>
 
-    <header class="header">
-        <h1>Claude Web Chat</h1>
-        <div class="header-controls">
-            <div class="cwd-display" id="cwdDisplay" onclick="openCwdPanel()" title="点击切换工作目录">
-                <span>📁</span>
-                <span id="cwdPath">加载中...</span>
-            </div>
-            <select class="model-select" id="modelSelect" onchange="changeModel()" title="选择模型">
-                <option value="claude-sonnet-4-6">Sonnet 4.6</option>
-            </select>
-            <select class="agent-select" id="agentSelect">
-                <option value="default">默认助手</option>
-                <option value="code-reviewer">代码审查</option>
-                <option value="test-writer">测试编写</option>
-                <option value="architect">架构设计</option>
-            </select>
-            <select class="permission-select" id="permissionModeSelect" title="权限模式">
-                <option value="auto">自动执行</option>
-                <option value="acceptEdits">自动编辑</option>
-                <option value="safe">安全模式</option>
-            </select>
-            <button class="header-btn" onclick="toggleLogPanel()" title="查看日志">📋</button>
-            <button class="header-btn" onclick="toggleSettings()" title="工具设置">⚙️</button>
-        </div>
-    </header>
+    <!-- ===================== 左侧导航栏 (React) ===================== -->
+    <nav class="left-nav" id="react-left-nav"></nav>
 
-    <main class="chat-container" id="chatContainer">
-        <div class="messages" id="messages">
-            <div class="message assistant">
-                <div class="avatar">C</div>
-                <div class="message-content">你好！我是 Claude，支持以下快捷命令：
+    <!-- ===================== 主布局区 ===================== -->
+    <div class="main-layout">
 
-• `/brainstorm 想法` - 头脑风暴模式，先探索设计再实现
-• `/plan 任务` - 文件规划模式，创建任务规划文档
+        <!-- ====== 聊天页面 ====== -->
+        <div class="page-view active" id="page-chat">
+            <div id="react-header"></div>
 
-直接输入你的问题或需求即可开始对话。</div>
-            </div>
-        </div>
-    </main>
+            <main class="chat-container" id="chatContainer">
+                <div class="messages" id="messages">
+                    <div class="message assistant">
+                        <div class="avatar">C</div>
+                        <div class="message-content">你好！我是 Claude，直接输入你的问题或需求即可开始对话。
 
-    <!-- 暂停控制栏 -->
-    <footer class="input-container">
+左侧导航栏可切换不同助手。</div>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="input-container">
         <div class="input-wrapper">
             <!-- 命令快捷按钮 -->
             <div class="command-bar">
@@ -2431,8 +3182,9 @@
                 </button>
                 <textarea
                     id="userInput"
-                    placeholder="输入消息..."
+                    placeholder="输入消息...（Enter 发送，Shift+Enter 换行）"
                     rows="1"
+                    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
                 ></textarea>
                 <button class="pause-btn-inline" id="pauseBtn" onclick="togglePause()" style="display: none;" title="暂停生成">⏸️</button>
                 <button class="expand-btn" onclick="openInputModal()" title="放大编辑">
@@ -2452,11 +3204,178 @@
             </div>
         </div>
     </footer>
+        </div><!-- /page-chat -->
+
+        <!-- ====== PPT 助手页面 ====== -->
+        <div class="page-view" id="page-ppt">
+            <div class="ppt-page">
+                <div class="ppt-page-inner">
+                    <h2 class="ppt-page-title">PPT 助手</h2>
+
+                    <!-- 模板选择 -->
+                    <div class="ppt-section">
+                        <label class="ppt-label">选择模板</label>
+                        <div class="ppt-template-grid" id="pptTemplateGrid">
+                            <div class="ppt-template-item selected" data-template="" onclick="selectTemplate(this, '')">
+                                <div class="ppt-template-preview"><span style="font-size:28px;">📄</span></div>
+                                <div class="ppt-template-name">空白模板</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+                            <label class="ppt-upload-label">
+                                <input type="file" accept=".pptx" onchange="uploadPPTTemplate(this)" style="display:none;">
+                                + 上传模板
+                            </label>
+                            <button class="ppt-upload-label" onclick="openFetchTemplateModal()" style="border:none; cursor:pointer;">
+                                &#127760; 从互联网获取
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 参考链接 -->
+                    <div class="ppt-section">
+                        <label class="ppt-label">参考文档链接（可选）</label>
+                        <div id="pptUrlList">
+                            <div class="ppt-url-row">
+                                <input type="text" class="ppt-input ppt-url-input" placeholder="输入网页链接" style="min-height:36px;">
+                                <button class="ppt-url-remove" onclick="this.parentElement.remove()" title="移除">&times;</button>
+                            </div>
+                        </div>
+                        <button class="ppt-url-add" onclick="addPPTUrlRow()">+ 添加链接</button>
+                    </div>
+
+                    <!-- 上传源文档 -->
+                    <div class="ppt-section">
+                        <label class="ppt-label">上传参考文档（可选）</label>
+                        <div class="ppt-upload-area" id="pptUploadArea"
+                             onclick="document.getElementById('pptFileUpload').click()">
+                            <input type="file" id="pptFileUpload" accept=".txt,.md,.pdf,.docx,.doc" onchange="uploadPPTSourceDoc(this)" style="display:none;">
+                            <span>点击或拖拽上传文档</span>
+                            <div class="ppt-upload-filename" id="pptUploadFilename" style="display:none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- 生成提示词 -->
+                    <div class="ppt-section">
+                        <label class="ppt-label">生成提示词</label>
+                        <textarea class="ppt-input" id="pptPromptInput" rows="4" placeholder="描述你要生成的 PPT 内容，例如：制作一个关于人工智能发展趋势的10页演示文稿"></textarea>
+                    </div>
+
+                    <!-- 生成按钮 -->
+                    <div class="ppt-section" style="text-align: center;">
+                        <button class="ppt-generate-btn" id="pptGenerateBtn" onclick="startPPTGeneration()">生成 PPT</button>
+                    </div>
+
+                    <!-- 状态 -->
+                    <div class="ppt-status" id="pptStatus" style="display:none;"></div>
+
+                    <!-- AI 输出 -->
+                    <div class="ppt-section" id="pptAIOutput" style="display:none;">
+                        <label class="ppt-label">AI 输出</label>
+                        <pre class="ppt-ai-content" id="pptAIContent" style="max-height:300px;overflow-y:auto;background:var(--bg-primary);padding:12px;border-radius:8px;font-size:13px;white-space:pre-wrap;"></pre>
+                    </div>
+
+                    <!-- 分页编辑器 -->
+                    <div class="ppt-slide-editor" id="pptSlideEditor" style="display:none;">
+                        <div class="ppt-slide-editor-header">
+                            <h4>幻灯片编辑</h4>
+                            <span class="ppt-slide-count" id="pptSlideCount"></span>
+                        </div>
+
+                        <!-- 幻灯片卡片列表 -->
+                        <div class="ppt-slide-cards" id="pptSlideCards"></div>
+
+                        <!-- 底部操作栏 -->
+                        <div class="ppt-slide-editor-actions">
+                            <button class="ppt-btn ppt-btn-secondary" onclick="addSlide()">+ 添加页面</button>
+                            <button class="ppt-btn" id="pptFinalizeBtn" onclick="finalizePPT()">生成 PPT</button>
+                        </div>
+                    </div>
+
+                    <!-- 下载区 -->
+                    <div class="ppt-download-area" id="pptDownloadArea" style="display:none;">
+                        <a class="ppt-download-link" id="pptDownloadLink" href="#" download>下载 PPT</a>
+                    </div>
+                </div>
+            </div>
+        </div><!-- /page-ppt -->
+
+        <!-- ====== 语雀助手页面（占位） ====== -->
+        <div class="page-view" id="page-yuque">
+            <div class="ppt-page">
+                <div class="ppt-page-inner">
+                    <h2 class="ppt-page-title" style="--emoji: '📄';">语雀助手</h2>
+                    <p style="color: var(--text-secondary); text-align: center; margin-top: 60px;">语雀助手功能开发中，敬请期待...</p>
+                </div>
+            </div>
+        </div><!-- /page-yuque -->
+
+        <!-- ====== 编码助手页面（占位） ====== -->
+        <div class="page-view" id="page-coder">
+            <div class="ppt-page">
+                <div class="ppt-page-inner">
+                    <h2 class="ppt-page-title" style="--emoji: '💻';">编码助手</h2>
+                    <p style="color: var(--text-secondary); text-align: center; margin-top: 60px;">编码助手功能开发中，敬请期待...</p>
+                </div>
+            </div>
+        </div><!-- /page-coder -->
+
+    </div><!-- /main-layout -->
+
+    <!-- ===================== 右侧历史面板 ===================== -->
+    <div class="right-history-panel" id="rightHistoryPanel">
+        <div class="right-history-header">
+            <h3>历史对话</h3>
+            <div style="display: flex; gap: 6px;">
+                <button class="header-btn" onclick="resetContext(); switchPage('chat')" title="新建对话">+</button>
+                <button class="header-btn" onclick="toggleRightHistory()" title="关闭">✕</button>
+            </div>
+        </div>
+        <div class="history-list" id="historyList" style="flex:1;overflow-y:auto;"></div>
+    </div>
 
     <!-- 图片放大预览模态框 -->
     <div class="image-lightbox" id="imageLightbox" onclick="closeLightbox(event)">
         <button class="image-lightbox-close" onclick="closeLightbox(event)">×</button>
         <img id="lightboxImage" src="" alt="放大预览">
+    </div>
+
+    <!-- 在线获取模板模态框 -->
+    <div class="input-modal" id="fetchTemplateModal" onclick="if(event.target===this)closeFetchTemplateModal()">
+        <div class="input-modal-content" style="width:420px;">
+            <div class="input-modal-header">
+                <h3>&#127760; 从互联网获取模板</h3>
+                <button class="header-btn" onclick="closeFetchTemplateModal()">&#10005;</button>
+            </div>
+            <div style="padding:16px;">
+                <div class="ppt-slide-field">
+                    <label>描述你需要的模板风格</label>
+                    <input type="text" id="fetchTemplateDesc" placeholder="例如：商务蓝色简约、科技风、年终总结..."
+                           onkeydown="if(event.key==='Enter')startFetchTemplate()">
+                </div>
+                <div id="fetchTemplateStatus" style="font-size:12px;color:var(--text-secondary);margin:8px 0;min-height:18px;"></div>
+                <div style="display:flex;gap:8px;justify-content:flex-end;">
+                    <button class="ppt-btn" onclick="closeFetchTemplateModal()">取消</button>
+                    <button class="ppt-btn ppt-btn-primary" id="fetchTemplateBtn" onclick="startFetchTemplate()">开始获取</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PPT 幻灯片预览模态框 -->
+    <div class="input-modal" id="pptPreviewModal" onclick="if(event.target===this)closePPTPreviewModal()">
+        <div class="ppt-preview-modal-content">
+            <div class="ppt-preview-modal-header">
+                <span id="pptPreviewPageInfo">1 / 1</span>
+                <button class="header-btn" onclick="closePPTPreviewModal()">&#10005;</button>
+            </div>
+            <div class="ppt-preview-modal-body">
+                <button class="ppt-preview-nav ppt-preview-nav-prev" onclick="pptPreviewPrev()">&#10094;</button>
+                <div class="ppt-preview-modal-slide" id="pptPreviewSlide"></div>
+                <button class="ppt-preview-nav ppt-preview-nav-next" onclick="pptPreviewNext()">&#10095;</button>
+            </div>
+            <div class="ppt-preview-modal-dots" id="pptPreviewDots"></div>
+        </div>
     </div>
 
     <!-- 大输入窗口模态框 -->
@@ -2680,6 +3599,7 @@
 
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
+            loadSavedTheme();
             loadTools();
             loadCwd();
             loadModels();
@@ -2757,7 +3677,7 @@
                 const response = await fetch(`/api/cwd?session_id=${currentChatId}`);
                 const data = await response.json();
                 currentCwd = data.cwd;
-                document.getElementById('cwdPath').textContent = currentCwd.split('/').slice(-2).join('/') || currentCwd;
+                window.ClawWeb?.setState({ cwdPath: currentCwd });
             } catch (e) {
                 console.error('加载工作目录失败:', e);
             }
@@ -2774,22 +3694,14 @@
                 const response = await fetch('/api/models');
                 const data = await response.json();
                 modelsData = data;
-                const modelSelect = document.getElementById('modelSelect');
-
-                // 清空现有选项
-                modelSelect.innerHTML = '';
-
-                // 添加模型选项
-                data.models.forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model.id;
-                    option.textContent = model.name;
-                    option.title = model.description;
-                    modelSelect.appendChild(option);
-                });
 
                 // 更新设置面板中的模型管理列表
                 renderModelManageList();
+
+                // 同步模型列表到 React bridge（由 React 渲染 select options）
+                window.ClawWeb?.setState({
+                    models: data.models.map(m => ({ id: m.id, name: m.name, description: m.description }))
+                });
 
                 // 加载会话的模型配置
                 await loadSessionModel();
@@ -2977,7 +3889,7 @@
                 const data = await response.json();
                 if (data.status === 'ok' && data.model) {
                     currentModel = data.model;
-                    document.getElementById('modelSelect').value = data.model;
+                    window.ClawWeb?.setState({ currentModel: data.model });
                 }
             } catch (e) {
                 console.error('加载会话模型配置失败:', e);
@@ -2986,8 +3898,12 @@
 
         // 切换模型
         async function changeModel() {
-            const modelSelect = document.getElementById('modelSelect');
-            const newModel = modelSelect.value;
+            const bridge = window.ClawWeb;
+            const newModel = bridge ? bridge.getSnapshot().currentModel : document.getElementById('modelSelect')?.value;
+            if (!newModel) return;
+
+            // 找到模型显示名
+            const modelName = modelsData?.models?.find(m => m.id === newModel)?.name || newModel;
 
             try {
                 const response = await fetch(`/api/session/${currentChatId}/model`, {
@@ -2998,17 +3914,21 @@
                 const data = await response.json();
                 if (data.status === 'ok') {
                     currentModel = newModel;
-                    showToast(`模型已切换到: ${modelSelect.options[modelSelect.selectedIndex].text}`, 'success');
+                    showToast(`模型已切换到: ${modelName}`, 'success');
                 } else {
                     showToast('切换模型失败: ' + data.message, 'error');
                     // 恢复原来的选择
                     if (currentModel) {
-                        modelSelect.value = currentModel;
+                        bridge?.setState({ currentModel: currentModel });
                     }
                 }
             } catch (e) {
                 console.error('切换模型失败:', e);
                 showToast('切换模型失败', 'error');
+                // 恢复原来的选择
+                if (currentModel) {
+                    bridge?.setState({ currentModel: currentModel });
+                }
             }
         }
 
@@ -3041,6 +3961,9 @@
             browser.innerHTML = '<div class="cwd-loading">加载中...</div>';
 
             cwdBrowsePath = path;
+            // 同步更新输入框
+            const cwdInput = document.getElementById('cwdInput');
+            if (cwdInput) cwdInput.value = path;
 
             try {
                 console.log('Loading directory:', path);
@@ -3130,8 +4053,9 @@
                 const data = await response.json();
                 if (data.status === 'ok') {
                     currentCwd = data.cwd;
-                    document.getElementById('cwdPath').textContent = currentCwd.split('/').slice(-2).join('/') || currentCwd;
+                    window.ClawWeb?.setState({ cwdPath: currentCwd });
                     closeCwdPanel();
+                    saveCurrentChatToHistory();  // 持久化 cwd 变更
                 } else {
                     alert('切换目录失败: ' + data.message);
                 }
@@ -3184,7 +4108,8 @@
                 title,
                 timestamp: Date.now(),
                 messageCount: history.length,
-                html: htmlContent  // 保存完整 HTML
+                html: htmlContent,  // 保存完整 HTML
+                cwd: currentCwd || ''  // 保存工作目录
             };
 
             if (existingIndex >= 0) {
@@ -3332,6 +4257,9 @@
             // 切换到新会话
             currentChatId = chatId;
 
+            // 确保切换到聊天页面
+            switchPage('chat');
+
             // 查找历史记录
             const historyItem = chatHistory.find(h => h.id === chatId);
             const messagesDiv = document.getElementById('messages');
@@ -3364,8 +4292,12 @@
                 }
             }
 
-            // 更新工作目录
-            loadCwd();
+            // 恢复工作目录：优先使用 localStorage 保存的 cwd
+            if (historyItem && historyItem.cwd) {
+                await selectCwd(historyItem.cwd);
+            } else {
+                await loadCwd();
+            }
 
             // 同步历史消息到后端
             const sessionHistory = sessions[chatId] || [];
@@ -3485,32 +4417,61 @@
             panel.classList.toggle('active');
         }
 
+        // ========== 主题切换 ==========
+        function setTheme(themeName) {
+            document.documentElement.setAttribute('data-theme', themeName);
+            localStorage.setItem('clawweb-theme', themeName);
+            window.ClawWeb?.setState({ theme: themeName });
+            // 更新主题卡片选中状态
+            document.querySelectorAll('.theme-card').forEach(card => {
+                card.classList.toggle('active', card.getAttribute('data-theme') === themeName);
+            });
+        }
+
+        function loadSavedTheme() {
+            const saved = localStorage.getItem('clawweb-theme');
+            if (saved) {
+                setTheme(saved);
+            }
+        }
+
         function closeAllPanels() {
-            document.getElementById('historyPanel').classList.remove('active');
-            document.getElementById('historyToggle').classList.remove('active');
             document.getElementById('logPanel').classList.remove('active');
             document.getElementById('settingsPanel').classList.remove('active');
             document.getElementById('cwdPanel').classList.remove('active');
             document.getElementById('overlay').classList.remove('active');
         }
 
-        function toggleHistoryPanel() {
-            const panel = document.getElementById('historyPanel');
-            const toggle = document.getElementById('historyToggle');
-            const overlay = document.getElementById('overlay');
-            const isActive = panel.classList.contains('active');
+        // 切换页面（左侧导航栏）
+        function switchPage(pageName) {
+            // 更新导航栏激活状态
+            document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+                item.classList.toggle('active', item.getAttribute('data-page') === pageName);
+            });
+            // 切换页面视图
+            document.querySelectorAll('.page-view').forEach(view => {
+                view.classList.toggle('active', view.id === 'page-' + pageName);
+            });
+            // 同步到 React bridge
+            window.ClawWeb?.setState({ activePage: pageName });
+            // 如果切换到 PPT 页面，自动加载模板
+            if (pageName === 'ppt') {
+                loadPPTTemplates();
+            }
+        }
 
-            if (isActive) {
-                panel.classList.remove('active');
-                toggle.classList.remove('active');
-                overlay.classList.remove('active');
-            } else {
-                closeAllPanels();
-                panel.classList.add('active');
-                toggle.classList.add('active');
-                overlay.classList.add('active');
+        // 切换右侧历史面板
+        function toggleRightHistory() {
+            const panel = document.getElementById('rightHistoryPanel');
+            panel.classList.toggle('active');
+            if (panel.classList.contains('active')) {
                 renderHistoryList();
             }
+        }
+
+        // 兼容旧调用
+        function toggleHistoryPanel() {
+            toggleRightHistory();
         }
 
         function handleKeyDown(event) {
@@ -3660,107 +4621,327 @@ ${task}`;
             await streamResponse(prompt);
         }
 
-        // ===================== PPT 制作功能 =====================
+        // ===================== PPT 助手面板功能 =====================
 
         // PPT 状态管理
         let pptSession = {
             sessionId: null,
+            pptSessionId: null,
             sourceFile: null,
             outline: null,
-            currentSlideIndex: 0,
+            selectedTemplate: '',
             isGenerating: false
         };
 
-        // 处理 /ppt 命令 - 简化版对话式交互
-        async function handlePPTCommand(message) {
-            const args = message.slice(4).trim();
-
-            // /ppt generate - 生成最终 PPT
-            if (args.toLowerCase() === 'generate' || args.toLowerCase() === '生成') {
-                await generateFinalPPT();
-                return;
-            }
-
-            // /ppt help - 显示帮助
-            if (args.toLowerCase() === 'help' || args === '帮助') {
-                addMessage('assistant', `📊 **PPT 制作帮助**
-
-**使用方法：**
-1. 输入 \`/ppt 你的需求\` 开始制作
-   例如：\`/ppt 制作一个关于Python入门的演示文稿，共5页\`
-
-2. 我会生成一个大纲，你可以：
-   - 直接确认生成
-   - 或者提出修改意见
-
-3. 确认后输入 \`/ppt generate\` 生成最终 PPT 文件
-
-**示例对话：**
-- 用户：\`/ppt 公司年会总结报告，包含业绩回顾、团队建设、明年规划\`
-- 我会返回大纲...
-- 用户：\`大纲可以，生成吧\` 或 \`/ppt generate\`
-- 我会生成 PPT 并提供下载链接`);
-                return;
-            }
-
-            // 普通 /ppt 命令 - 生成大纲
-            if (!args) {
-                addMessage('assistant', '📊 请描述你要制作的 PPT 内容。\n\n例如：`/ppt 制作一个产品介绍PPT，包含功能特点、使用场景、价格方案`');
-                return;
-            }
-
-            // 初始化 PPT 会话
-            pptSession.sessionId = currentChatId;
-
-            // 构建生成大纲的 prompt
-            const pptPrompt = `请帮我设计一个 PPT 大纲。
-
-**需求：** ${args}
-
-**输出格式要求：**
-请按以下 JSON 格式输出大纲：
-
-\`\`\`json
-{
-  "title": "PPT 主标题",
-  "subtitle": "副标题",
-  "slides": [
-    {
-      "title": "第1页标题",
-      "subtitle": "副标题（可选）",
-      "bullets": ["要点1", "要点2", "要点3"],
-      "layout_type": "content"
-    }
-  ]
-}
-\`\`\`
-
-**注意事项：**
-1. 一般 5-10 页为宜
-2. 每页要点 3-5 个
-3. 布局类型可选：title（标题页）、content（内容页）、two_column（两栏）、conclusion（总结页）
-4. 请确保内容专业、结构清晰`;
-
-            // 发送给 AI 生成大纲
-            await streamResponse(pptPrompt);
-
-            // 提示用户下一步
-            setTimeout(() => {
-                addMessage('assistant', '---\n💡 如果大纲满意，请输入 `/ppt generate` 生成 PPT 文件。\n   如果需要修改，请告诉我具体调整内容。');
-            }, 500);
+        // 打开 PPT 页面（通过导航栏切换）
+        function openPPTPanel() {
+            switchPage('ppt');
         }
 
-        // 生成最终 PPT
-        async function generateFinalPPT() {
-            addMessage('assistant', '📊 正在生成 PPT 文件...');
+        function closePPTPanel() {
+            switchPage('chat');
+        }
+
+        // 加载模板列表
+        async function loadPPTTemplates() {
+            try {
+                const resp = await fetch('/api/ppt/templates');
+                const data = await resp.json();
+                if (data.status === 'ok') {
+                    renderPPTTemplates(data.templates);
+                }
+            } catch (e) {
+                console.error('加载模板失败:', e);
+            }
+        }
+
+        // 渲染模板网格
+        function renderPPTTemplates(templates) {
+            const grid = document.getElementById('pptTemplateGrid');
+            // 保留空白模板选项
+            grid.innerHTML = `
+                <div class="ppt-template-item ${pptSession.selectedTemplate === '' ? 'selected' : ''}"
+                     data-template="" onclick="selectTemplate(this, '')">
+                    <div class="ppt-template-preview"><span style="font-size:28px;">📄</span></div>
+                    <div class="ppt-template-name">空白模板</div>
+                </div>
+            `;
+            templates.forEach(t => {
+                const item = document.createElement('div');
+                item.className = `ppt-template-item ${pptSession.selectedTemplate === t.filename ? 'selected' : ''}`;
+                item.setAttribute('data-template', t.filename);
+                item.onclick = () => selectTemplate(item, t.filename);
+                item.innerHTML = `
+                    <button class="ppt-template-delete" onclick="event.stopPropagation();deletePPTTemplate('${t.filename}')" title="删除模板">&times;</button>
+                    <div class="ppt-template-preview"><span style="font-size:28px;">📊</span></div>
+                    <div class="ppt-template-name" title="${t.name}">${t.name}</div>
+                `;
+                grid.appendChild(item);
+            });
+        }
+
+        // 选择模板
+        function selectTemplate(el, filename) {
+            document.querySelectorAll('.ppt-template-item').forEach(item => item.classList.remove('selected'));
+            el.classList.add('selected');
+            pptSession.selectedTemplate = filename;
+        }
+
+        // 上传模板
+        async function uploadPPTTemplate(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
 
             try {
-                const response = await fetch('/api/ppt/outline', {
+                const resp = await fetch('/api/ppt/templates/upload', { method: 'POST', body: formData });
+                const data = await resp.json();
+                if (data.status === 'ok') {
+                    loadPPTTemplates();
+                } else {
+                    alert(data.message);
+                }
+            } catch (e) {
+                alert('上传失败: ' + e.message);
+            }
+            input.value = '';
+        }
+
+        // 删除模板
+        async function deletePPTTemplate(filename) {
+            if (!confirm('确定删除该模板？')) return;
+            try {
+                await fetch(`/api/ppt/templates/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+                if (pptSession.selectedTemplate === filename) {
+                    pptSession.selectedTemplate = '';
+                }
+                loadPPTTemplates();
+            } catch (e) {
+                alert('删除失败: ' + e.message);
+            }
+        }
+
+        // ========== 在线获取模板 ==========
+        function openFetchTemplateModal() {
+            const modal = document.getElementById('fetchTemplateModal');
+            modal.classList.add('active');
+            document.getElementById('fetchTemplateDesc').value = '';
+            document.getElementById('fetchTemplateStatus').textContent = '';
+            document.getElementById('fetchTemplateBtn').disabled = false;
+            document.getElementById('fetchTemplateBtn').textContent = '开始获取';
+            setTimeout(() => document.getElementById('fetchTemplateDesc').focus(), 100);
+        }
+
+        function closeFetchTemplateModal() {
+            document.getElementById('fetchTemplateModal').classList.remove('active');
+        }
+
+        async function startFetchTemplate() {
+            const desc = document.getElementById('fetchTemplateDesc').value.trim();
+            if (!desc) { document.getElementById('fetchTemplateStatus').textContent = '请输入模板描述'; return; }
+
+            const btn = document.getElementById('fetchTemplateBtn');
+            const status = document.getElementById('fetchTemplateStatus');
+            btn.disabled = true;
+            btn.textContent = '搜索中...';
+            status.textContent = '正在从互联网搜索并下载模板，请稍候...';
+
+            try {
+                const resp = await fetch('/api/ppt/templates/fetch-online', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description: desc })
+                });
+                const data = await resp.json();
+                if (data.status === 'ok') {
+                    status.style.color = '#4ade80';
+                    status.textContent = data.message || '模板下载成功！';
+                    loadPPTTemplates();
+                    setTimeout(() => closeFetchTemplateModal(), 1500);
+                } else {
+                    status.style.color = '#f87171';
+                    status.textContent = data.message || '获取失败';
+                }
+            } catch (e) {
+                status.style.color = '#f87171';
+                status.textContent = '网络错误: ' + e.message;
+            }
+            btn.disabled = false;
+            btn.textContent = '开始获取';
+            status.style.color = '';
+        }
+
+        // ========== PPT 预览模态框 ==========
+        let pptPreviewCurrentIdx = 0;
+
+        function openPPTPreviewModal(startIdx) {
+            if (!pptSession.outline || !pptSession.outline.slides || pptSession.outline.slides.length === 0) return;
+            pptPreviewCurrentIdx = startIdx || 0;
+            document.getElementById('pptPreviewModal').classList.add('active');
+            renderPPTPreviewModalSlide();
+        }
+
+        function closePPTPreviewModal() {
+            document.getElementById('pptPreviewModal').classList.remove('active');
+        }
+
+        function pptPreviewPrev() {
+            if (pptPreviewCurrentIdx > 0) {
+                pptPreviewCurrentIdx--;
+                renderPPTPreviewModalSlide();
+            }
+        }
+
+        function pptPreviewNext() {
+            const total = pptSession.outline.slides.length;
+            if (pptPreviewCurrentIdx < total - 1) {
+                pptPreviewCurrentIdx++;
+                renderPPTPreviewModalSlide();
+            }
+        }
+
+        function pptPreviewGoTo(idx) {
+            pptPreviewCurrentIdx = idx;
+            renderPPTPreviewModalSlide();
+        }
+
+        function renderPPTPreviewModalSlide() {
+            const slides = pptSession.outline.slides;
+            const total = slides.length;
+            const idx = pptPreviewCurrentIdx;
+            const slide = slides[idx];
+
+            // 页码
+            document.getElementById('pptPreviewPageInfo').textContent = `${idx + 1} / ${total}`;
+
+            // 导航按钮状态
+            document.querySelector('.ppt-preview-nav-prev').disabled = (idx === 0);
+            document.querySelector('.ppt-preview-nav-next').disabled = (idx === total - 1);
+
+            // 渲染幻灯片内容
+            const container = document.getElementById('pptPreviewSlide');
+            const layout = slide.layout_type || 'content';
+            const title = escapeHtml(slide.title || '');
+            const subtitle = escapeHtml(slide.subtitle || '');
+            const bullets = slide.bullets || [];
+
+            let bulletsHtml = '';
+            if (bullets.length > 0) {
+                const items = bullets.map(b => `<li>${escapeHtml(b)}</li>`).join('');
+                bulletsHtml = `<ul class="preview-bullets">${items}</ul>`;
+            }
+
+            container.setAttribute('data-layout', layout);
+            container.innerHTML = `
+                <div class="preview-title">${title}</div>
+                ${subtitle ? `<div class="preview-subtitle">${subtitle}</div>` : ''}
+                ${bulletsHtml}
+                <span class="preview-page-num">${idx + 1}</span>
+            `;
+
+            // 渲染圆点
+            const dots = document.getElementById('pptPreviewDots');
+            dots.innerHTML = slides.map((_, i) =>
+                `<span class="ppt-preview-dot ${i === idx ? 'active' : ''}" onclick="pptPreviewGoTo(${i})"></span>`
+            ).join('');
+        }
+
+        // 键盘导航
+        document.addEventListener('keydown', function(e) {
+            const modal = document.getElementById('pptPreviewModal');
+            if (!modal || !modal.classList.contains('active')) return;
+            if (e.key === 'ArrowLeft') pptPreviewPrev();
+            else if (e.key === 'ArrowRight') pptPreviewNext();
+            else if (e.key === 'Escape') closePPTPreviewModal();
+        });
+
+        // 添加 URL 行
+        function addPPTUrlRow() {
+            const list = document.getElementById('pptUrlList');
+            const row = document.createElement('div');
+            row.className = 'ppt-url-row';
+            row.innerHTML = `
+                <input type="text" class="ppt-input ppt-url-input" placeholder="输入网页链接" style="min-height:36px;">
+                <button class="ppt-url-remove" onclick="this.parentElement.remove()" title="移除">&times;</button>
+            `;
+            list.appendChild(row);
+        }
+
+        // 上传源文档
+        async function uploadPPTSourceDoc(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('session_id', currentChatId);
+
+            try {
+                const resp = await fetch('/api/ppt/upload', { method: 'POST', body: formData });
+                const data = await resp.json();
+                if (data.status === 'ok') {
+                    const area = document.getElementById('pptUploadArea');
+                    area.classList.add('has-file');
+                    const filenameEl = document.getElementById('pptUploadFilename');
+                    filenameEl.textContent = file.name;
+                    filenameEl.style.display = 'block';
+                    pptSession.sourceFile = file.name;
+                } else {
+                    alert(data.message);
+                }
+            } catch (e) {
+                alert('上传失败: ' + e.message);
+            }
+        }
+
+        // 开始生成 PPT
+        async function startPPTGeneration() {
+            const prompt = document.getElementById('pptPromptInput').value.trim();
+            if (!prompt) {
+                alert('请输入生成提示词');
+                return;
+            }
+
+            // 收集参考 URL
+            const urlInputs = document.querySelectorAll('.ppt-url-input');
+            const urls = [];
+            urlInputs.forEach(input => {
+                const url = input.value.trim();
+                if (url) urls.push(url);
+            });
+
+            // 更新 UI 状态
+            const btn = document.getElementById('pptGenerateBtn');
+            btn.disabled = true;
+            btn.textContent = '生成中...';
+            pptSession.isGenerating = true;
+
+            const statusEl = document.getElementById('pptStatus');
+            statusEl.style.display = 'flex';
+            statusEl.className = 'ppt-status generating';
+            statusEl.textContent = '正在准备生成...';
+
+            const slideEditor = document.getElementById('pptSlideEditor');
+            slideEditor.style.display = 'none';
+            const downloadArea = document.getElementById('pptDownloadArea');
+            downloadArea.style.display = 'none';
+            const aiOutput = document.getElementById('pptAIOutput');
+            aiOutput.style.display = 'block';
+            const aiContent = document.getElementById('pptAIContent');
+            aiContent.textContent = '';
+
+            try {
+                const response = await fetch('/api/ppt/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         session_id: currentChatId,
-                        requirement: '根据之前讨论的内容生成 PPT'
+                        prompt: prompt,
+                        template: pptSession.selectedTemplate,
+                        reference_urls: urls,
+                        model: currentModel
                     })
                 });
 
@@ -3775,38 +4956,369 @@ ${task}`;
                     const lines = chunk.split('\n');
 
                     for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            try {
-                                const data = JSON.parse(line.slice(6));
-                                if (data.type === 'outline_ready') {
-                                    // 大纲已生成，现在生成 PPT 文件
-                                    const finalizeResponse = await fetch('/api/ppt/finalize', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ session_id: currentChatId })
-                                    });
-
-                                    const finalizeData = await finalizeResponse.json();
-                                    if (finalizeData.status === 'ok') {
-                                        addMessage('assistant', `✅ **PPT 生成完成！**\n\n📄 文件：${finalizeData.filename}\n📊 共 ${finalizeData.slide_count} 页\n\n[📥 点击下载 PPT](${finalizeData.download_url})`);
-                                    } else {
-                                        addMessage('assistant', `❌ 生成失败：${finalizeData.message}`);
-                                    }
-                                } else if (data.type === 'error') {
-                                    addMessage('assistant', `❌ 错误：${data.message}`);
-                                }
-                            } catch (e) {
-                                // 忽略解析错误
-                            }
+                        if (!line.startsWith('data: ')) continue;
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            handlePPTStreamEvent(data);
+                        } catch (e) {
+                            // ignore parse errors
                         }
                     }
                 }
             } catch (e) {
-                addMessage('assistant', `❌ 生成失败：${e.message}\n\n请确保你已经提供了 PPT 需求说明。使用 \`/ppt 需求描述\` 开始。`);
+                statusEl.className = 'ppt-status';
+                statusEl.textContent = '生成失败: ' + e.message;
+            }
+
+            btn.disabled = false;
+            btn.textContent = '生成 PPT';
+            pptSession.isGenerating = false;
+        }
+
+        // 处理 PPT 流式事件
+        function handlePPTStreamEvent(data) {
+            const statusEl = document.getElementById('pptStatus');
+            const aiContent = document.getElementById('pptAIContent');
+
+            switch (data.type) {
+                case 'status':
+                    statusEl.textContent = data.message || '';
+                    break;
+
+                case 'content':
+                    aiContent.textContent += data.text || '';
+                    aiContent.scrollTop = aiContent.scrollHeight;
+                    break;
+
+                case 'outline_ready':
+                    statusEl.className = 'ppt-status success';
+                    statusEl.textContent = data.message || '大纲已生成';
+                    pptSession.outline = data.outline;
+                    pptSession.pptSessionId = data.session_id || currentChatId;
+                    renderSlideEditor(data.outline);
+                    break;
+
+                case 'ppt_ready':
+                    statusEl.className = 'ppt-status success';
+                    statusEl.textContent = data.message || 'PPT 生成完成！';
+                    showPPTDownload(data.download_url, data.filename, data.slide_count);
+                    addMessage('assistant', `PPT 生成完成！共 ${data.slide_count} 页\n\n[点击下载 PPT](${data.download_url})`);
+                    break;
+
+                case 'error':
+                    statusEl.className = 'ppt-status';
+                    statusEl.textContent = data.message || '生成失败';
+                    break;
+
+                case 'warning':
+                    console.warn('PPT Warning:', data.message);
+                    break;
             }
         }
 
-        // 进入 PPT 模式（从头部按钮调用）
+        // 渲染分页编辑器
+        function renderSlideEditor(outline) {
+            if (!outline) return;
+            const editor = document.getElementById('pptSlideEditor');
+            editor.style.display = 'block';
+            document.getElementById('pptSlideCount').textContent = `${(outline.slides || []).length} 页`;
+
+            const container = document.getElementById('pptSlideCards');
+            container.innerHTML = '';
+
+            (outline.slides || []).forEach((slide, idx) => {
+                container.appendChild(createSlideCard(slide, idx));
+            });
+        }
+
+        function renderSlidePreview(slide, idx) {
+            const layout = slide.layout_type || 'content';
+            const title = escapeHtml(slide.title || '');
+            const subtitle = escapeHtml(slide.subtitle || '');
+            const bullets = slide.bullets || [];
+
+            if (layout === 'title') {
+                return `<div class="ppt-slide-preview" data-layout="title" onclick="openPPTPreviewModal(${idx})">
+                    <div class="preview-title">${title}</div>
+                    ${subtitle ? `<div class="preview-subtitle">${subtitle}</div>` : ''}
+                    <span class="preview-page-num">${idx + 1}</span>
+                </div>`;
+            }
+
+            let bulletsHtml = '';
+            if (bullets.length > 0) {
+                const items = bullets.slice(0, 6).map(b => `<li>${escapeHtml(b)}</li>`).join('');
+                bulletsHtml = `<ul class="preview-bullets">${items}</ul>`;
+            }
+
+            return `<div class="ppt-slide-preview" data-layout="${layout}" onclick="openPPTPreviewModal(${idx})">
+                <div class="preview-title">${title}</div>
+                ${subtitle ? `<div class="preview-subtitle">${subtitle}</div>` : ''}
+                ${bulletsHtml}
+                <span class="preview-page-num">${idx + 1}</span>
+            </div>`;
+        }
+
+        function updateSlidePreview(idx, slide) {
+            const card = document.getElementById(`slideCard-${idx}`);
+            if (!card) return;
+            const oldPreview = card.querySelector('.ppt-slide-preview');
+            if (!oldPreview) return;
+            const tmp = document.createElement('div');
+            tmp.innerHTML = renderSlidePreview(slide, idx);
+            const newPreview = tmp.firstElementChild;
+            oldPreview.replaceWith(newPreview);
+        }
+
+        function createSlideCard(slide, idx) {
+            const card = document.createElement('div');
+            card.className = 'ppt-slide-card';
+            card.id = `slideCard-${idx}`;
+
+            const bulletsPreview = (slide.bullets || []).slice(0, 2).join(' / ') || '';
+
+            card.innerHTML = `
+                <div class="ppt-slide-card-header" onclick="toggleSlideCard(${idx})">
+                    <span class="ppt-slide-card-num">${idx + 1}</span>
+                    <span class="ppt-slide-card-title">${escapeHtml(slide.title || '(无标题)')}</span>
+                    <span class="ppt-slide-card-bullets">${escapeHtml(bulletsPreview)}</span>
+                    <span class="ppt-slide-card-toggle">&#9654;</span>
+                </div>
+                ${renderSlidePreview(slide, idx)}
+                <div class="ppt-slide-card-body">
+                    <div class="ppt-slide-field">
+                        <label>标题</label>
+                        <input type="text" id="slideTitle-${idx}" value="${escapeAttr(slide.title || '')}" onchange="saveSlide(${idx})">
+                    </div>
+                    <div class="ppt-slide-field">
+                        <label>副标题</label>
+                        <input type="text" id="slideSubtitle-${idx}" value="${escapeAttr(slide.subtitle || '')}" onchange="saveSlide(${idx})">
+                    </div>
+                    <div class="ppt-slide-field">
+                        <label>要点（每行一条）</label>
+                        <textarea id="slideBullets-${idx}" onchange="saveSlide(${idx})">${escapeHtml((slide.bullets || []).join('\n'))}</textarea>
+                    </div>
+                    <div class="ppt-slide-field">
+                        <label>布局</label>
+                        <select id="slideLayout-${idx}" onchange="saveSlide(${idx})">
+                            <option value="content" ${slide.layout_type === 'content' ? 'selected' : ''}>内容</option>
+                            <option value="title" ${slide.layout_type === 'title' ? 'selected' : ''}>标题页</option>
+                            <option value="section" ${slide.layout_type === 'section' ? 'selected' : ''}>章节页</option>
+                            <option value="two_column" ${slide.layout_type === 'two_column' ? 'selected' : ''}>两栏</option>
+                            <option value="blank" ${slide.layout_type === 'blank' ? 'selected' : ''}>空白</option>
+                        </select>
+                    </div>
+                    <div class="ppt-slide-field">
+                        <label>演讲者备注</label>
+                        <textarea id="slideNotes-${idx}" rows="2" onchange="saveSlide(${idx})">${escapeHtml(slide.notes || '')}</textarea>
+                    </div>
+                    <div class="ppt-slide-card-actions">
+                        <button class="btn-enhance" onclick="enhanceSlide(${idx})">AI 优化</button>
+                        <button class="btn-delete" onclick="deleteSlide(${idx})">删除</button>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        function escapeAttr(s) {
+            return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+
+        function toggleSlideCard(idx) {
+            const card = document.getElementById(`slideCard-${idx}`);
+            if (card) card.classList.toggle('expanded');
+        }
+
+        async function saveSlide(idx) {
+            const sid = pptSession.pptSessionId || currentChatId;
+            const bullets = document.getElementById(`slideBullets-${idx}`).value.split('\n').filter(b => b.trim());
+            const payload = {
+                title: document.getElementById(`slideTitle-${idx}`).value,
+                subtitle: document.getElementById(`slideSubtitle-${idx}`).value,
+                bullets: bullets,
+                layout_type: document.getElementById(`slideLayout-${idx}`).value,
+                notes: document.getElementById(`slideNotes-${idx}`).value
+            };
+
+            try {
+                const resp = await fetch(`/api/ppt/slide/${sid}/${idx}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await resp.json();
+                if (data.status === 'ok') {
+                    // 更新卡片标题预览
+                    const titleEl = document.querySelector(`#slideCard-${idx} .ppt-slide-card-title`);
+                    if (titleEl) titleEl.textContent = payload.title || '(无标题)';
+                    const bulletsEl = document.querySelector(`#slideCard-${idx} .ppt-slide-card-bullets`);
+                    if (bulletsEl) bulletsEl.textContent = bullets.slice(0, 2).join(' / ');
+                    // 同步本地 outline
+                    if (pptSession.outline && pptSession.outline.slides) {
+                        pptSession.outline.slides[idx] = data.slide;
+                    }
+                    // 更新幻灯片预览
+                    updateSlidePreview(idx, payload);
+                }
+            } catch (e) {
+                console.error('保存幻灯片失败', e);
+            }
+        }
+
+        async function enhanceSlide(idx) {
+            const sid = pptSession.pptSessionId || currentChatId;
+            const btn = document.querySelector(`#slideCard-${idx} .btn-enhance`);
+            if (btn) { btn.disabled = true; btn.textContent = '优化中...'; }
+
+            try {
+                const resp = await fetch(`/api/ppt/slide/${sid}/${idx}/enhance`, { method: 'POST' });
+                const reader = resp.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value);
+                    for (const line of chunk.split('\n')) {
+                        if (!line.startsWith('data: ')) continue;
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            if (data.type === 'slide_enhanced' && data.slide) {
+                                // 更新本地数据并重新渲染该卡片
+                                if (pptSession.outline && pptSession.outline.slides) {
+                                    pptSession.outline.slides[idx] = data.slide;
+                                }
+                                const card = document.getElementById(`slideCard-${idx}`);
+                                const wasExpanded = card && card.classList.contains('expanded');
+                                const newCard = createSlideCard(data.slide, idx);
+                                if (wasExpanded) newCard.classList.add('expanded');
+                                if (card) card.replaceWith(newCard);
+                            }
+                        } catch (e) { /* ignore */ }
+                    }
+                }
+            } catch (e) {
+                console.error('AI 优化失败', e);
+            }
+
+            if (btn) { btn.disabled = false; btn.textContent = 'AI 优化'; }
+        }
+
+        async function deleteSlide(idx) {
+            if (!confirm(`确定删除第 ${idx + 1} 页？`)) return;
+            const sid = pptSession.pptSessionId || currentChatId;
+
+            try {
+                const resp = await fetch(`/api/ppt/slide/${sid}/${idx}`, { method: 'DELETE' });
+                const data = await resp.json();
+                if (data.status === 'ok') {
+                    if (pptSession.outline && pptSession.outline.slides) {
+                        pptSession.outline.slides.splice(idx, 1);
+                    }
+                    renderSlideEditor(pptSession.outline);
+                }
+            } catch (e) {
+                console.error('删除幻灯片失败', e);
+            }
+        }
+
+        async function addSlide() {
+            const sid = pptSession.pptSessionId || currentChatId;
+
+            try {
+                const resp = await fetch(`/api/ppt/slide/${sid}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: '新页面', bullets: ['要点 1', '要点 2', '要点 3'] })
+                });
+                const data = await resp.json();
+                if (data.status === 'ok') {
+                    if (pptSession.outline && pptSession.outline.slides) {
+                        pptSession.outline.slides.push(data.slide);
+                    }
+                    renderSlideEditor(pptSession.outline);
+                    // 自动展开新卡片
+                    const newIdx = (pptSession.outline.slides || []).length - 1;
+                    toggleSlideCard(newIdx);
+                }
+            } catch (e) {
+                console.error('添加幻灯片失败', e);
+            }
+        }
+
+        async function finalizePPT() {
+            const sid = pptSession.pptSessionId || currentChatId;
+            const btn = document.getElementById('pptFinalizeBtn');
+            btn.disabled = true;
+            btn.textContent = '正在生成...';
+
+            const statusEl = document.getElementById('pptStatus');
+            statusEl.style.display = 'flex';
+            statusEl.className = 'ppt-status generating';
+            statusEl.textContent = '正在生成 PPT 文件...';
+
+            try {
+                const resp = await fetch('/api/ppt/finalize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sid })
+                });
+                const data = await resp.json();
+                if (data.status === 'ok') {
+                    statusEl.className = 'ppt-status success';
+                    statusEl.textContent = data.message || 'PPT 生成完成！';
+                    showPPTDownload(data.download_url, data.filename, data.slide_count);
+                    addMessage('assistant', `PPT 生成完成！共 ${data.slide_count} 页\n\n[点击下载 PPT](${data.download_url})`);
+                } else {
+                    statusEl.className = 'ppt-status';
+                    statusEl.textContent = data.message || '生成失败';
+                }
+            } catch (e) {
+                statusEl.className = 'ppt-status';
+                statusEl.textContent = '生成失败: ' + e.message;
+            }
+
+            btn.disabled = false;
+            btn.textContent = '生成 PPT';
+        }
+
+        // 显示下载链接
+        function showPPTDownload(url, filename, slideCount) {
+            const area = document.getElementById('pptDownloadArea');
+            area.style.display = 'block';
+            const link = document.getElementById('pptDownloadLink');
+            link.href = url;
+            link.textContent = `下载 ${filename}（${slideCount} 页）`;
+        }
+
+        // 处理 /ppt 命令 - 切换到 PPT 页面
+        async function handlePPTCommand(message) {
+            const args = message.slice(4).trim();
+            if (args) {
+                document.getElementById('pptPromptInput').value = args;
+            }
+            switchPage('ppt');
+        }
+
+        // 初始化拖拽上传
+        (function initPPTDragDrop() {
+            const area = document.getElementById('pptUploadArea');
+            if (!area) return;
+            area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('dragover'); });
+            area.addEventListener('dragleave', () => area.classList.remove('dragover'));
+            area.addEventListener('drop', e => {
+                e.preventDefault();
+                area.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const input = document.getElementById('pptFileUpload');
+                    input.files = files;
+                    uploadPPTSourceDoc(input);
+                }
+            });
+        })();
+
         async function streamResponse(message, images = []) {
             const contentDiv = addMessage('assistant', '', true);
             let fullContent = '';
@@ -3843,8 +5355,7 @@ ${task}`;
             }
 
             // 获取权限模式
-            const permissionModeSelect = document.getElementById('permissionModeSelect');
-            const permissionMode = permissionModeSelect ? permissionModeSelect.value : 'auto';
+            const permissionMode = window.ClawWeb ? window.ClawWeb.getSnapshot().permissionMode : 'auto';
             requestBody.permission_mode = permissionMode;
 
             console.log('Sending request:', requestBody);
@@ -3882,15 +5393,10 @@ ${task}`;
                                     contentDiv.innerHTML = formatContent(fullContent);
                                     scrollToBottom();
                                 } else if (data.type === 'system') {
-                                    // 系统初始化消息
+                                    // 系统初始化消息 - 静默处理，不显示模型和工具信息
                                     if (contentDiv.querySelector('.loading')) {
                                         contentDiv.innerHTML = '';
                                     }
-                                    const model = data.model || '';
-                                    const toolCount = (data.tools || []).length;
-                                    fullContent += `\n<div class="process-info">⚙️ 模型: ${escapeHtml(model)}，可用工具: ${toolCount} 个</div>`;
-                                    contentDiv.innerHTML = formatContent(fullContent);
-                                    scrollToBottom();
                                 } else if (data.type === 'tool_call') {
                                     // 显示工具调用
                                     if (contentDiv.querySelector('.loading')) {
@@ -3934,8 +5440,11 @@ ${task}`;
                                     if (summary.numLines !== undefined) summaryText += `${summary.numLines} 行  `;
                                     if (summary.resultSize !== undefined) summaryText += `大小: ${summary.resultSize}  `;
 
+                                    const isError = data.is_error || false;
                                     const detailId = 'result-detail-' + toolUseId + '-' + Date.now();
-                                    let resultHtml = `\n<div class="tool-result">✅ <strong>工具结果</strong>`;
+                                    let resultHtml = isError
+                                        ? `\n<div class="tool-result tool-error">❌ <strong>工具调用错误</strong>`
+                                        : `\n<div class="tool-result">✅ <strong>工具结果</strong>`;
                                     if (summaryText) {
                                         resultHtml += `<div class="tool-result-summary">${escapeHtml(summaryText.trim())}</div>`;
                                     }
@@ -4327,7 +5836,7 @@ ${task}`;
 
 • /brainstorm 想法 - 头脑风暴模式，先探索设计再实现
 • /plan 任务 - 文件规划模式，创建任务规划文档
-• /ppt 需求 - PPT 制作模式，交互式创建演示文稿
+• /ppt 需求 - PPT 助手，打开 PPT 制作面板（支持模板、参考链接）
 
 直接输入你的问题或需求即可开始对话。</div>
                 </div>
@@ -4397,5 +5906,6 @@ ${task}`;
             stopPermissionPolling();
         }
     </script>
+    <script src="/static/clawweb-ui.js"></script>
 </body>
 </html>
