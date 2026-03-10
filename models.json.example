@@ -1,0 +1,13 @@
+{
+  "models": [
+    {
+      "id": "claude-opus-4-6",
+      "name": "claude-opus-4-6",
+      "api_name": "your-api-key-here",
+      "url": "https://api.anthropic.com",
+      "description": "",
+      "tier": "custom"
+    }
+  ],
+  "default_model": "claude-opus-4-6"
+}

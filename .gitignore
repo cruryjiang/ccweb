@@ -22,5 +22,8 @@ temp_images/
 .idea/
 .vscode/
 
+# API keys
+models.json
+
 # Claude
 .claude/
